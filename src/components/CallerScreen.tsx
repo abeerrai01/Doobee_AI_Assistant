@@ -10,9 +10,12 @@ import { motion } from 'framer-motion';
 import { Menu, Mic, MicOff, PhoneCall, PhoneOff, Loader2, Volume2, ShieldCheck, Maximize, Minimize } from 'lucide-react';
 
 import { RedOrb } from './RedOrb';
-import { CallState, AgentState, StartSessionResponse } from '../types';
+import { BookingSummaryCard } from './BookingSummaryCard';
+import { CallState, AgentState, StartSessionResponse, TranscriptMessage, ExtractedBookingDetails } from '../types';
 import { useAudioLevel } from '../hooks/useAudioLevel';
 import { startVoiceSession } from '../services/api';
+import { extractBookingDetailsFromTranscript } from '../utils/summaryExtractor';
+import { generateId, getCurrentTimestamp } from '../utils/formatters';
 import blueSphereImg from '../assets/blue-sphere.jpg';
 
 export const CallerScreen: React.FC = () => {
@@ -22,6 +25,10 @@ export const CallerScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+
+  // Post-Call Booking Summary State
+  const [summaryDetails, setSummaryDetails] = useState<ExtractedBookingDetails | null>(null);
+  const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
 
   // Fullscreen state and 5-tap counter
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -127,6 +134,17 @@ export const CallerScreen: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     setCallState('connecting');
+    setSummaryDetails(null);
+
+    // Initial greeting transcript
+    setTranscriptMessages([
+      {
+        id: generateId(),
+        sender: 'ai',
+        text: 'Hello! Welcome to Doobee AI Voice Assistant. How can I help you today?',
+        timestamp: getCurrentTimestamp(),
+      },
+    ]);
 
     try {
       // 1. Request microphone permission first so user browser grants audio input
@@ -158,14 +176,25 @@ export const CallerScreen: React.FC = () => {
     }
   }, [isLoading]);
 
-  // Handles disconnection
+  // Handles disconnection and triggers extracted summary receipt
   const handleEndCall = useCallback(() => {
     setCallState('disconnected');
     setAgentState('idle');
     setSessionCredentials(null);
+
+    // Extract booking details from accumulated transcript messages!
+    const extracted = extractBookingDetailsFromTranscript(transcriptMessages);
+    setSummaryDetails(extracted);
+
     setTimeout(() => {
       setCallState('idle');
     }, 500);
+  }, [transcriptMessages]);
+
+  const handleResetNewCall = useCallback(() => {
+    setSummaryDetails(null);
+    setCallState('idle');
+    setTranscriptMessages([]);
   }, []);
 
   // Lock mobile body touchmove to prevent rubber-banding / downward elastic scrolling
@@ -249,8 +278,10 @@ export const CallerScreen: React.FC = () => {
           </div>
         </header>
 
-        {/* Conditional Content: Connected vs Disconnected */}
-        {sessionCredentials && callState === 'connected' ? (
+        {/* Conditional Content: Booking Summary Card vs Connected Call vs Disconnected */}
+        {summaryDetails ? (
+          <BookingSummaryCard summary={summaryDetails} onNewCall={handleResetNewCall} />
+        ) : sessionCredentials && callState === 'connected' ? (
           <LiveKitRoom
             serverUrl={sessionCredentials.livekitUrl}
             token={sessionCredentials.token}
@@ -275,6 +306,7 @@ export const CallerScreen: React.FC = () => {
               onCenterTap={handleCenterTap}
               tapCount={tapCount}
               isFullscreen={isFullscreen}
+              setTranscriptMessages={setTranscriptMessages}
             />
           </LiveKitRoom>
         ) : (
@@ -396,6 +428,7 @@ interface ConnectedCallerUIProps {
   onCenterTap?: () => void;
   tapCount?: number;
   isFullscreen?: boolean;
+  setTranscriptMessages?: React.Dispatch<React.SetStateAction<TranscriptMessage[]>>;
 }
 
 const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
@@ -409,6 +442,7 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
   onCenterTap,
   tapCount = 0,
   isFullscreen = false,
+  setTranscriptMessages,
 }) => {
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
@@ -449,7 +483,49 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
       }
     };
 
-    // 4. Handle active speakers to update agent state
+    // 4. Handle LiveKit transcription received event
+    const handleTranscription = (transcripts: any[], participant?: Participant) => {
+      if (!setTranscriptMessages) return;
+      transcripts.forEach((t) => {
+        if (t.text && t.text.trim().length > 0) {
+          const isUser = participant?.identity === localParticipant?.identity;
+          const sender = isUser ? 'user' : 'ai';
+          setTranscriptMessages((prev) => [
+            ...prev,
+            {
+              id: t.id || generateId(),
+              sender,
+              text: t.text,
+              timestamp: getCurrentTimestamp(),
+              isFinal: t.isFinal,
+            },
+          ]);
+        }
+      });
+    };
+
+    // 5. Handle DataReceived JSON payload packets
+    const handleDataReceived = (payload: Uint8Array, participant?: Participant) => {
+      if (!setTranscriptMessages) return;
+      try {
+        const str = new TextDecoder().decode(payload);
+        const data = JSON.parse(str);
+        if (data.type === 'transcript' || data.text) {
+          const isUser = participant?.identity === localParticipant?.identity;
+          setTranscriptMessages((prev) => [
+            ...prev,
+            {
+              id: generateId(),
+              sender: isUser ? 'user' : 'ai',
+              text: data.text || data.message,
+              timestamp: getCurrentTimestamp(),
+            },
+          ]);
+        }
+      } catch (e) {}
+    };
+
+    // 6. Handle active speakers to update agent state
     const handleActiveSpeakers = (speakers: Participant[]) => {
       const isRemoteSpeaking = speakers.some(
         (s) => localParticipant && s.identity !== localParticipant.identity
@@ -468,13 +544,17 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
     };
 
     room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+    room.on(RoomEvent.TranscriptionReceived, handleTranscription);
+    room.on(RoomEvent.DataReceived, handleDataReceived);
     room.on(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakers);
 
     return () => {
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+      room.off(RoomEvent.TranscriptionReceived, handleTranscription);
+      room.off(RoomEvent.DataReceived, handleDataReceived);
       room.off(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakers);
     };
-  }, [room, localParticipant, setAgentState]);
+  }, [room, localParticipant, setAgentState, setTranscriptMessages]);
 
   const unlockAudioManually = () => {
     if (room) {

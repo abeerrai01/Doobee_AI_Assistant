@@ -64,3 +64,17 @@ export interface BookingConfirmation {
   worker?: WorkerInfo;
   createdAt: string;
 }
+
+export interface ExtractedBookingDetails {
+  bookingId: string;
+  serviceType: string;
+  problemSummary: string;
+  scheduledTime: string;
+  workerName: string;
+  workerPhone: string;
+  workerRating: number;
+  estimatedFee: string;
+  customerAddress: string;
+  createdAt: string;
+  status: 'confirmed' | 'assigned' | 'in_progress';
+}
