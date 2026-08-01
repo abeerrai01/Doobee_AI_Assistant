@@ -76,7 +76,11 @@ export const RedOrb: React.FC<RedOrbProps> = ({
         animate={{ scale: dynamicScale }}
         transition={{ type: 'spring', stiffness: 260, damping: 18 }}
         onClick={onClick}
-        className="relative w-36 h-36 xs:w-44 xs:h-44 sm:w-52 sm:h-52 rounded-full lavender-orb-3d flex items-center justify-center cursor-pointer shadow-2xl z-10 active:scale-95 transition-transform"
+        onPointerDown={(e) => {
+          // Prevent ghost click delays on mobile
+          if (onClick) onClick();
+        }}
+        className="relative w-36 h-36 xs:w-44 xs:h-44 sm:w-52 sm:h-52 rounded-full lavender-orb-3d flex items-center justify-center cursor-pointer shadow-2xl z-10 active:scale-95 transition-transform select-none"
       >
         {/* Top Gloss Highlight Lens */}
         <div className="absolute top-2 left-4 sm:top-3 sm:left-6 w-10 h-6 sm:w-14 sm:h-8 rounded-full bg-white/60 blur-[3px] transform -rotate-45 pointer-events-none" />

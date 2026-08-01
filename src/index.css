@@ -11,12 +11,22 @@
     --sar: env(safe-area-inset-right, 0px);
   }
 
-  html, body {
+  html, body, #root {
     font-family: var(--font-sans);
     background-color: #000000;
     color: #f8fafc;
-    overflow-x: hidden;
-    touch-action: manipulation;
+    overflow: hidden;
+    height: 100%;
+    max-height: 100dvh;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: none;
     -webkit-tap-highlight-color: transparent;
   }
 

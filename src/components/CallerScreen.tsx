@@ -25,6 +25,7 @@ export const CallerScreen: React.FC = () => {
 
   // Fullscreen state and 5-tap counter
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isPseudoFs, setIsPseudoFs] = useState<boolean>(false);
   const [tapCount, setTapCount] = useState<number>(0);
   const lastTapTimeRef = useRef<number>(0);
 
@@ -36,7 +37,10 @@ export const CallerScreen: React.FC = () => {
         (document as any).webkitFullscreenElement
       );
       setIsFullscreen(isFs);
-      if (!isFs) setTapCount(0);
+      if (!isFs) {
+        setIsPseudoFs(false);
+        setTapCount(0);
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFsChange);
@@ -47,43 +51,62 @@ export const CallerScreen: React.FC = () => {
     };
   }, []);
 
-  // Toggle browser Fullscreen mode
+  // Toggle browser Fullscreen mode with fallback to CSS pseudo-fullscreen for iOS Safari
   const toggleFullscreen = useCallback(async () => {
-    try {
-      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+    const currentlyActive = isFullscreen || isPseudoFs;
+
+    if (!currentlyActive) {
+      let nativeFsSuccess = false;
+      try {
         const elem = document.documentElement;
         if (elem.requestFullscreen) {
           await elem.requestFullscreen();
+          nativeFsSuccess = true;
         } else if ((elem as any).webkitRequestFullscreen) {
           await (elem as any).webkitRequestFullscreen();
+          nativeFsSuccess = true;
         }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
-        }
+      } catch (err) {
+        console.warn('Native fullscreen request rejected/unsupported:', err);
       }
-    } catch (err) {
-      console.warn('Fullscreen error:', err);
+      setIsPseudoFs(true);
+      setIsFullscreen(true);
+    } else {
+      try {
+        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            await (document as any).webkitExitFullscreen();
+          }
+        }
+      } catch (err) {
+        console.warn('Native exitFullscreen error:', err);
+      }
+      setIsPseudoFs(false);
+      setIsFullscreen(false);
+      setTapCount(0);
     }
-  }, []);
+  }, [isFullscreen, isPseudoFs]);
 
   // 5-Tap Gesture on center orb to exit fullscreen
   const handleCenterTap = useCallback(() => {
     const now = Date.now();
-    // If user is in fullscreen mode (or even standard view), track taps within 1.5s
     if (now - lastTapTimeRef.current < 1500) {
       const nextCount = tapCount + 1;
       if (nextCount >= 5) {
         // 5 Taps reached: Exit Fullscreen!
         if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          } else if ((document as any).webkitExitFullscreen) {
-            (document as any).webkitExitFullscreen();
-          }
+          try {
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            } else if ((document as any).webkitExitFullscreen) {
+              (document as any).webkitExitFullscreen();
+            }
+          } catch (e) {}
         }
+        setIsPseudoFs(false);
+        setIsFullscreen(false);
         setTapCount(0);
       } else {
         setTapCount(nextCount);
@@ -145,8 +168,30 @@ export const CallerScreen: React.FC = () => {
     }, 500);
   }, []);
 
+  // Lock mobile body touchmove to prevent rubber-banding / downward elastic scrolling
+  useEffect(() => {
+    const preventScroll = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.closest('.overflow-y-auto')) {
+        return;
+      }
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => {
+      document.removeEventListener('touchmove', preventScroll);
+    };
+  }, []);
+
+  const isFsActive = isFullscreen || isPseudoFs;
+
   return (
-    <div className="w-full min-h-[100dvh] bg-[#05020a] text-white flex flex-col items-center justify-center p-0 sm:p-4 selection:bg-purple-600 relative overflow-hidden">
+    <div className={`w-full h-[100dvh] max-h-[100dvh] bg-[#05020a] text-white flex flex-col items-center justify-center p-0 sm:p-4 selection:bg-purple-600 relative overflow-hidden fixed inset-0 touch-none overscroll-none select-none ${
+      isFsActive ? 'z-[9999]' : ''
+    }`}>
       {/* Background Lavender Ambient Radial Glow */}
       <div
         className={`absolute inset-0 transition-all duration-700 pointer-events-none ${
@@ -155,7 +200,11 @@ export const CallerScreen: React.FC = () => {
       />
 
       {/* Mobile Phone Mockup Outer Frame Container */}
-      <div className="w-full min-h-[100dvh] sm:min-h-0 sm:max-w-[400px] sm:h-[780px] sm:max-h-[92vh] bg-[#090314] rounded-none sm:rounded-[48px] border-0 sm:border-[6px] border-slate-900 shadow-none sm:shadow-[0_0_80px_rgba(168,85,247,0.35)] flex flex-col justify-between p-4 pt-safe pb-safe sm:p-6 relative overflow-hidden z-10 border-t border-purple-900/40">
+      <div className={`w-full h-[100dvh] max-h-[100dvh] ${
+        isFsActive
+          ? 'max-w-none rounded-none border-0'
+          : 'sm:min-h-0 sm:max-w-[400px] sm:h-[780px] sm:max-h-[92vh] sm:rounded-[48px] sm:border-[6px]'
+      } bg-[#090314] rounded-none border-0 border-slate-900 shadow-none sm:shadow-[0_0_80px_rgba(168,85,247,0.35)] flex flex-col justify-between p-4 pt-safe pb-safe sm:p-6 relative overflow-hidden z-10 border-t border-purple-900/40 touch-none overscroll-none`}>
         
         {/* Top Phone Status & Header Bar */}
         <header className="w-full flex items-center justify-between z-20 pt-1 sm:pt-2 px-1">
@@ -167,11 +216,29 @@ export const CallerScreen: React.FC = () => {
           {/* Fullscreen Toggle Button & User Icon Avatar / Caller ID */}
           <div className="flex items-center gap-2">
             <button
-              onClick={toggleFullscreen}
-              title={isFullscreen ? "Exit Fullscreen (or tap center 5 times)" : "Enter Fullscreen Mode"}
-              className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors cursor-pointer text-purple-200"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleFullscreen();
+              }}
+              onPointerDown={(e) => {
+                // Prevent ghost click delays on mobile touch devices
+                e.preventDefault();
+                toggleFullscreen();
+              }}
+              title={isFsActive ? "Exit Fullscreen (or tap center 5 times)" : "Enter Fullscreen Mode"}
+              className="px-3 py-1.5 rounded-full bg-purple-950/80 border border-purple-400/50 hover:bg-purple-900 text-purple-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition-all z-30 select-none"
             >
-              {isFullscreen ? <Minimize className="w-4.5 h-4.5" /> : <Maximize className="w-4.5 h-4.5" />}
+              {isFsActive ? (
+                <>
+                  <Minimize className="w-3.5 h-3.5 text-purple-300" />
+                  <span>Exit FS</span>
+                </>
+              ) : (
+                <>
+                  <Maximize className="w-3.5 h-3.5 text-purple-300" />
+                  <span>Fullscreen</span>
+                </>
+              )}
             </button>
 
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 via-indigo-400 to-sky-300 p-[2px] shadow-lg shadow-purple-950/60">
