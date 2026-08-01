@@ -30,14 +30,14 @@ export const CallControls: React.FC<CallControlsProps> = ({
   isConnected,
 }) => {
   return (
-    <div className="w-full max-w-md my-4 p-3 rounded-3xl bg-slate-950/80 border border-slate-800/80 backdrop-blur-2xl flex items-center justify-around gap-2 shadow-2xl">
+    <div className="w-full max-w-md my-2 sm:my-4 p-2 sm:p-3 rounded-3xl bg-slate-950/80 border border-slate-800/80 backdrop-blur-2xl flex items-center justify-around gap-1.5 sm:gap-2 shadow-2xl">
       {/* Mute Microphone Button */}
       <motion.button
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.92 }}
         onClick={onToggleMute}
         title={isMuted ? 'Unmute Microphone' : 'Mute Microphone'}
-        className={`relative p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 ${
+        className={`relative flex-1 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer ${
           isMuted
             ? 'bg-rose-950/80 text-rose-400 border border-rose-800/60 shadow-lg shadow-rose-950/50'
             : 'bg-slate-900 text-slate-100 border border-slate-700/60 hover:bg-slate-800 hover:border-blue-500/50'
@@ -58,7 +58,7 @@ export const CallControls: React.FC<CallControlsProps> = ({
         whileTap={{ scale: 0.92 }}
         onClick={onToggleSpeaker}
         title={isSpeakerOn ? 'Speaker On' : 'Speaker Off'}
-        className={`p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 ${
+        className={`flex-1 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer ${
           isSpeakerOn
             ? 'bg-slate-900 text-sky-400 border border-sky-500/40 shadow-md shadow-sky-950/40'
             : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:bg-slate-800'
@@ -76,7 +76,7 @@ export const CallControls: React.FC<CallControlsProps> = ({
         whileTap={{ scale: 0.92 }}
         onClick={onReconnect}
         title="Reconnect Session"
-        className="p-4 rounded-2xl bg-slate-900 text-amber-400 border border-slate-800 hover:bg-slate-800 hover:border-amber-500/50 flex flex-col items-center justify-center transition-all duration-300"
+        className="flex-1 p-3 sm:p-4 rounded-2xl bg-slate-900 text-amber-400 border border-slate-800 hover:bg-slate-800 hover:border-amber-500/50 flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer"
       >
         <RotateCcw className="w-5 h-5" />
         <span className="text-[10px] font-medium mt-1 text-slate-300">
@@ -90,7 +90,7 @@ export const CallControls: React.FC<CallControlsProps> = ({
         whileTap={{ scale: 0.92 }}
         onClick={onEndCall}
         title="End Call"
-        className="p-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white border border-rose-400/40 shadow-xl shadow-rose-950/80 flex flex-col items-center justify-center transition-all duration-300"
+        className="flex-1 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white border border-rose-400/40 shadow-xl shadow-rose-950/80 flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer"
       >
         <PhoneOff className="w-5 h-5 fill-current" />
         <span className="text-[10px] font-bold mt-1">

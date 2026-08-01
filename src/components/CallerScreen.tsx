@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -7,7 +7,7 @@ import {
 } from '@livekit/components-react';
 import { RoomEvent, Track, TrackPublication, Participant } from 'livekit-client';
 import { motion } from 'framer-motion';
-import { Menu, Mic, MicOff, PhoneCall, PhoneOff, Loader2, Volume2, ShieldCheck } from 'lucide-react';
+import { Menu, Mic, MicOff, PhoneCall, PhoneOff, Loader2, Volume2, ShieldCheck, Maximize, Minimize } from 'lucide-react';
 
 import { RedOrb } from './RedOrb';
 import { CallState, AgentState, StartSessionResponse } from '../types';
@@ -22,6 +22,77 @@ export const CallerScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+
+  // Fullscreen state and 5-tap counter
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [tapCount, setTapCount] = useState<number>(0);
+  const lastTapTimeRef = useRef<number>(0);
+
+  // Listen to browser Fullscreen change events
+  useEffect(() => {
+    const handleFsChange = () => {
+      const isFs = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement
+      );
+      setIsFullscreen(isFs);
+      if (!isFs) setTapCount(0);
+    };
+
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+    };
+  }, []);
+
+  // Toggle browser Fullscreen mode
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if ((elem as any).webkitRequestFullscreen) {
+          await (elem as any).webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn('Fullscreen error:', err);
+    }
+  }, []);
+
+  // 5-Tap Gesture on center orb to exit fullscreen
+  const handleCenterTap = useCallback(() => {
+    const now = Date.now();
+    // If user is in fullscreen mode (or even standard view), track taps within 1.5s
+    if (now - lastTapTimeRef.current < 1500) {
+      const nextCount = tapCount + 1;
+      if (nextCount >= 5) {
+        // 5 Taps reached: Exit Fullscreen!
+        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            (document as any).webkitExitFullscreen();
+          }
+        }
+        setTapCount(0);
+      } else {
+        setTapCount(nextCount);
+      }
+    } else {
+      setTapCount(1);
+    }
+    lastTapTimeRef.current = now;
+  }, [tapCount]);
 
   // Audio level generator for smooth visualizer and lavender orb
   const isSpeaking = agentState === 'speaking';
@@ -75,7 +146,7 @@ export const CallerScreen: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-[#05020a] text-white flex flex-col items-center justify-center p-4 selection:bg-purple-600 relative overflow-hidden">
+    <div className="w-full min-h-[100dvh] bg-[#05020a] text-white flex flex-col items-center justify-center p-0 sm:p-4 selection:bg-purple-600 relative overflow-hidden">
       {/* Background Lavender Ambient Radial Glow */}
       <div
         className={`absolute inset-0 transition-all duration-700 pointer-events-none ${
@@ -84,17 +155,25 @@ export const CallerScreen: React.FC = () => {
       />
 
       {/* Mobile Phone Mockup Outer Frame Container */}
-      <div className="w-full max-w-[390px] h-[760px] bg-[#090314] rounded-[48px] border-[6px] border-slate-900 shadow-[0_0_80px_rgba(168,85,247,0.35)] flex flex-col justify-between p-6 relative overflow-hidden z-10 border-t border-purple-900/40">
+      <div className="w-full min-h-[100dvh] sm:min-h-0 sm:max-w-[400px] sm:h-[780px] sm:max-h-[92vh] bg-[#090314] rounded-none sm:rounded-[48px] border-0 sm:border-[6px] border-slate-900 shadow-none sm:shadow-[0_0_80px_rgba(168,85,247,0.35)] flex flex-col justify-between p-4 pt-safe pb-safe sm:p-6 relative overflow-hidden z-10 border-t border-purple-900/40">
         
         {/* Top Phone Status & Header Bar */}
-        <header className="w-full flex items-center justify-between z-20 pt-2 px-1">
+        <header className="w-full flex items-center justify-between z-20 pt-1 sm:pt-2 px-1">
           {/* Hamburger Menu Icon */}
           <button className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors cursor-pointer">
             <Menu className="w-5 h-5 text-purple-200" />
           </button>
 
-          {/* User Icon Avatar / Caller ID */}
+          {/* Fullscreen Toggle Button & User Icon Avatar / Caller ID */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Exit Fullscreen (or tap center 5 times)" : "Enter Fullscreen Mode"}
+              className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors cursor-pointer text-purple-200"
+            >
+              {isFullscreen ? <Minimize className="w-4.5 h-4.5" /> : <Maximize className="w-4.5 h-4.5" />}
+            </button>
+
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 via-indigo-400 to-sky-300 p-[2px] shadow-lg shadow-purple-950/60">
               <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                 <img src={blueSphereImg} alt="Caller ID" className="w-full h-full object-cover rounded-full" />
@@ -126,6 +205,9 @@ export const CallerScreen: React.FC = () => {
               isMuted={isMuted}
               setIsMuted={setIsMuted}
               onEndCall={handleEndCall}
+              onCenterTap={handleCenterTap}
+              tapCount={tapCount}
+              isFullscreen={isFullscreen}
             />
           </LiveKitRoom>
         ) : (
@@ -136,6 +218,9 @@ export const CallerScreen: React.FC = () => {
             onConnect={handleConnect}
             isLoading={isLoading}
             errorMessage={errorMessage}
+            onCenterTap={handleCenterTap}
+            tapCount={tapCount}
+            isFullscreen={isFullscreen}
           />
         )}
       </div>
@@ -150,6 +235,9 @@ interface DisconnectedCallerUIProps {
   onConnect: () => void;
   isLoading: boolean;
   errorMessage: string | null;
+  onCenterTap?: () => void;
+  tapCount?: number;
+  isFullscreen?: boolean;
 }
 
 const DisconnectedCallerUI: React.FC<DisconnectedCallerUIProps> = ({
@@ -159,12 +247,22 @@ const DisconnectedCallerUI: React.FC<DisconnectedCallerUIProps> = ({
   onConnect,
   isLoading,
   errorMessage,
+  onCenterTap,
+  tapCount = 0,
+  isFullscreen = false,
 }) => {
   return (
     <div className="w-full flex-1 flex flex-col items-center justify-between z-10 pt-4">
       {/* Center 3D Lavender Orb Sphere */}
       <div className="flex-1 flex items-center justify-center">
-        <RedOrb agentState={agentState} callState={callState} audioLevel={audioLevel} />
+        <RedOrb
+          agentState={agentState}
+          callState={callState}
+          audioLevel={audioLevel}
+          onClick={onCenterTap}
+          tapCount={tapCount}
+          isFullscreen={isFullscreen}
+        />
       </div>
 
       {/* Main Headlines matching mockup */}
@@ -228,6 +326,9 @@ interface ConnectedCallerUIProps {
   isMuted: boolean;
   setIsMuted: React.Dispatch<React.SetStateAction<boolean>>;
   onEndCall: () => void;
+  onCenterTap?: () => void;
+  tapCount?: number;
+  isFullscreen?: boolean;
 }
 
 const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
@@ -238,6 +339,9 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
   isMuted,
   setIsMuted,
   onEndCall,
+  onCenterTap,
+  tapCount = 0,
+  isFullscreen = false,
 }) => {
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
@@ -326,7 +430,14 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
     <div className="w-full flex-1 flex flex-col items-center justify-between z-10 pt-4">
       {/* Center 3D Lavender Orb Sphere */}
       <div className="flex-1 flex items-center justify-center">
-        <RedOrb agentState={agentState} callState={callState} audioLevel={audioLevel} />
+        <RedOrb
+          agentState={agentState}
+          callState={callState}
+          audioLevel={audioLevel}
+          onClick={onCenterTap}
+          tapCount={tapCount}
+          isFullscreen={isFullscreen}
+        />
       </div>
 
       {/* Main Headlines matching mockup */}

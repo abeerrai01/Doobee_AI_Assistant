@@ -5,18 +5,36 @@
   :root {
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
   }
 
-  body {
+  html, body {
     font-family: var(--font-sans);
     background-color: #000000;
     color: #f8fafc;
     overflow-x: hidden;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
   }
+}
+
+/* Safe area padding utilities */
+.pt-safe {
+  padding-top: max(1rem, var(--sat));
+}
+.pb-safe {
+  padding-bottom: max(1rem, var(--sab));
+}
+.px-safe {
+  padding-left: max(1rem, var(--sal));
+  padding-right: max(1rem, var(--sar));
 }
 
 /* Lavender Light Glowing Atmosphere */
