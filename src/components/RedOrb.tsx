@@ -35,31 +35,31 @@ export const RedOrb: React.FC<RedOrbProps> = ({
             initial={{ opacity: 0, y: -10, scale: 0.9 }}
             animate={{ opacity: 1, y: -24, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.9 }}
-            className="absolute top-0 z-30 px-3.5 py-1.5 rounded-full bg-purple-950/90 border border-purple-400/50 text-xs font-semibold text-purple-200 shadow-xl backdrop-blur-md whitespace-nowrap"
+            className="absolute top-0 z-30 px-3.5 py-1.5 rounded-full bg-amber-950/95 border border-amber-400/60 text-xs font-bold text-amber-200 shadow-xl backdrop-blur-md whitespace-nowrap"
           >
             Tap center 5 times to exit ({tapCount}/5)
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Ambient Lavender Atmospheric Glow Rings */}
+      {/* Ambient Golden Atmospheric Glow Rings */}
       <motion.div
         animate={{
           scale: isSpeaking ? [1, 1.3, 1] : [1, 1.15, 1],
-          opacity: isSpeaking ? [0.5, 0.9, 0.5] : [0.25, 0.5, 0.25],
+          opacity: isSpeaking ? [0.6, 0.95, 0.6] : [0.3, 0.6, 0.3],
         }}
         transition={{
           duration: isSpeaking ? 1.2 : 3,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-purple-500/35 blur-3xl pointer-events-none"
+        className="absolute w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-amber-500/40 blur-3xl pointer-events-none"
       />
 
       <motion.div
         animate={{
           scale: [1, 1.2, 1],
-          opacity: [0.2, 0.45, 0.2],
+          opacity: [0.25, 0.5, 0.25],
         }}
         transition={{
           duration: 4,
@@ -67,10 +67,10 @@ export const RedOrb: React.FC<RedOrbProps> = ({
           ease: 'easeInOut',
           delay: 0.5,
         }}
-        className="absolute w-60 h-60 sm:w-80 sm:h-80 rounded-full border border-purple-400/30 pointer-events-none"
+        className="absolute w-60 h-60 sm:w-80 sm:h-80 rounded-full border border-amber-400/40 pointer-events-none"
       />
 
-      {/* 3D Glossy Lavender Light Sphere */}
+      {/* 3D Glossy Golden Light Sphere */}
       <motion.div
         whileTap={{ scale: dynamicScale * 0.94 }}
         animate={{ scale: dynamicScale }}
@@ -80,10 +80,10 @@ export const RedOrb: React.FC<RedOrbProps> = ({
           // Prevent ghost click delays on mobile
           if (onClick) onClick();
         }}
-        className="relative w-36 h-36 xs:w-44 xs:h-44 sm:w-52 sm:h-52 rounded-full lavender-orb-3d flex items-center justify-center cursor-pointer shadow-2xl z-10 active:scale-95 transition-transform select-none"
+        className="relative w-36 h-36 xs:w-44 xs:h-44 sm:w-52 sm:h-52 rounded-full golden-orb-3d flex items-center justify-center cursor-pointer shadow-2xl z-10 active:scale-95 transition-transform select-none"
       >
         {/* Top Gloss Highlight Lens */}
-        <div className="absolute top-2 left-4 sm:top-3 sm:left-6 w-10 h-6 sm:w-14 sm:h-8 rounded-full bg-white/60 blur-[3px] transform -rotate-45 pointer-events-none" />
+        <div className="absolute top-2 left-4 sm:top-3 sm:left-6 w-10 h-6 sm:w-14 sm:h-8 rounded-full bg-white/70 blur-[3px] transform -rotate-45 pointer-events-none" />
 
         {/* Dark Inner Center Core / Lens */}
         <motion.div
@@ -95,10 +95,10 @@ export const RedOrb: React.FC<RedOrbProps> = ({
             repeat: Infinity,
             ease: 'easeInOut',
           }}
-          className="w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 rounded-full lavender-orb-inner-lens flex items-center justify-center relative overflow-hidden border border-purple-800/60"
+          className="w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 rounded-full golden-orb-inner-lens flex items-center justify-center relative overflow-hidden border border-amber-500/60"
         >
           {/* Inner Core Pulsing Glow */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-400/60 blur-md animate-pulse" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-400/70 blur-md animate-pulse" />
         </motion.div>
 
         {/* Connecting Spinner Ring if in loading state */}
@@ -106,7 +106,7 @@ export const RedOrb: React.FC<RedOrbProps> = ({
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className="absolute inset-[-6px] rounded-full border-2 border-transparent border-t-purple-300 border-r-indigo-300"
+            className="absolute inset-[-6px] rounded-full border-2 border-transparent border-t-amber-300 border-r-yellow-400"
           />
         )}
       </motion.div>

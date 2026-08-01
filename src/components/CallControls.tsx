@@ -7,7 +7,6 @@ import {
   VolumeX,
   PhoneOff,
   RotateCcw,
-  Radio,
 } from 'lucide-react';
 
 interface CallControlsProps {
@@ -30,7 +29,7 @@ export const CallControls: React.FC<CallControlsProps> = ({
   isConnected,
 }) => {
   return (
-    <div className="w-full max-w-md my-2 sm:my-4 p-2 sm:p-3 rounded-3xl bg-slate-950/80 border border-slate-800/80 backdrop-blur-2xl flex items-center justify-around gap-1.5 sm:gap-2 shadow-2xl">
+    <div className="w-full max-w-md my-2 sm:my-4 p-2 sm:p-3 rounded-3xl bg-amber-950/40 border border-amber-500/40 backdrop-blur-2xl flex items-center justify-around gap-1.5 sm:gap-2 shadow-2xl shadow-amber-950/60">
       {/* Mute Microphone Button */}
       <motion.button
         whileHover={{ scale: 1.08 }}
@@ -39,16 +38,16 @@ export const CallControls: React.FC<CallControlsProps> = ({
         title={isMuted ? 'Unmute Microphone' : 'Mute Microphone'}
         className={`relative flex-1 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer ${
           isMuted
-            ? 'bg-rose-950/80 text-rose-400 border border-rose-800/60 shadow-lg shadow-rose-950/50'
-            : 'bg-slate-900 text-slate-100 border border-slate-700/60 hover:bg-slate-800 hover:border-blue-500/50'
+            ? 'bg-rose-950/90 text-rose-400 border border-rose-800/60 shadow-lg shadow-rose-950/50'
+            : 'bg-amber-950/80 text-amber-100 border border-amber-500/40 hover:bg-amber-900 hover:border-amber-400/60'
         }`}
       >
-        {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-blue-400" />}
-        <span className="text-[10px] font-medium mt-1">
+        {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-amber-400" />}
+        <span className="text-[10px] font-bold mt-1">
           {isMuted ? 'Muted' : 'Mic On'}
         </span>
         {!isMuted && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
         )}
       </motion.button>
 
@@ -60,12 +59,12 @@ export const CallControls: React.FC<CallControlsProps> = ({
         title={isSpeakerOn ? 'Speaker On' : 'Speaker Off'}
         className={`flex-1 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer ${
           isSpeakerOn
-            ? 'bg-slate-900 text-sky-400 border border-sky-500/40 shadow-md shadow-sky-950/40'
-            : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:bg-slate-800'
+            ? 'bg-amber-950/90 text-amber-300 border border-amber-400/50 shadow-md shadow-amber-950/60'
+            : 'bg-amber-950/40 text-amber-400/60 border border-amber-500/30 hover:bg-amber-900/50'
         }`}
       >
-        {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-slate-500" />}
-        <span className="text-[10px] font-medium mt-1">
+        {isSpeakerOn ? <Volume2 className="w-5 h-5 text-amber-400" /> : <VolumeX className="w-5 h-5 text-amber-500/50" />}
+        <span className="text-[10px] font-bold mt-1">
           {isSpeakerOn ? 'Speaker' : 'Mute Spk'}
         </span>
       </motion.button>
@@ -76,10 +75,10 @@ export const CallControls: React.FC<CallControlsProps> = ({
         whileTap={{ scale: 0.92 }}
         onClick={onReconnect}
         title="Reconnect Session"
-        className="flex-1 p-3 sm:p-4 rounded-2xl bg-slate-900 text-amber-400 border border-slate-800 hover:bg-slate-800 hover:border-amber-500/50 flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer"
+        className="flex-1 p-3 sm:p-4 rounded-2xl bg-amber-950/80 text-amber-300 border border-amber-500/40 hover:bg-amber-900 hover:border-amber-400 flex flex-col items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer"
       >
-        <RotateCcw className="w-5 h-5" />
-        <span className="text-[10px] font-medium mt-1 text-slate-300">
+        <RotateCcw className="w-5 h-5 text-amber-400" />
+        <span className="text-[10px] font-bold mt-1 text-amber-200">
           Reconnect
         </span>
       </motion.button>

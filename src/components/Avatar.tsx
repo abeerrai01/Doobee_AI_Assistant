@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AgentState } from '../types';
-import { Bot, Sparkles, Mic } from 'lucide-react';
+import { Bot, Sparkles } from 'lucide-react';
 
 interface AvatarProps {
   agentState: AgentState;
@@ -9,40 +9,40 @@ interface AvatarProps {
 }
 
 export const Avatar: React.FC<AvatarProps> = ({ agentState, audioLevel = 0.3 }) => {
-  // State specific colors & animations
+  // State specific colors & animations in Golden Theme
   const getStateConfig = () => {
     switch (agentState) {
       case 'speaking':
         return {
-          glowColor: 'rgba(37, 99, 235, 0.7)',
-          ringColor: 'border-blue-500',
+          glowColor: 'rgba(245, 158, 11, 0.8)',
+          ringColor: 'border-amber-400',
           badgeText: 'Doobee Speaking',
-          accentGradient: 'from-blue-600 via-sky-500 to-teal-400',
-          iconColor: 'text-blue-200',
+          accentGradient: 'from-amber-500 via-yellow-400 to-amber-600',
+          iconColor: 'text-amber-300',
         };
       case 'listening':
         return {
-          glowColor: 'rgba(16, 185, 129, 0.7)',
-          ringColor: 'border-emerald-500',
+          glowColor: 'rgba(252, 211, 77, 0.7)',
+          ringColor: 'border-yellow-400',
           badgeText: 'Listening to You',
-          accentGradient: 'from-emerald-600 via-teal-500 to-cyan-400',
-          iconColor: 'text-emerald-200',
+          accentGradient: 'from-yellow-500 via-amber-400 to-amber-600',
+          iconColor: 'text-yellow-200',
         };
       case 'thinking':
         return {
-          glowColor: 'rgba(147, 51, 234, 0.7)',
-          ringColor: 'border-purple-500',
+          glowColor: 'rgba(217, 119, 6, 0.7)',
+          ringColor: 'border-amber-500',
           badgeText: 'Doobee Thinking...',
-          accentGradient: 'from-purple-600 via-indigo-500 to-sky-400',
-          iconColor: 'text-purple-200',
+          accentGradient: 'from-amber-600 via-amber-500 to-yellow-500',
+          iconColor: 'text-amber-200',
         };
       default:
         return {
-          glowColor: 'rgba(30, 41, 59, 0.4)',
-          ringColor: 'border-slate-700',
+          glowColor: 'rgba(180, 83, 9, 0.4)',
+          ringColor: 'border-amber-800',
           badgeText: 'Doobee Ready',
-          accentGradient: 'from-slate-700 via-blue-900 to-slate-800',
-          iconColor: 'text-slate-400',
+          accentGradient: 'from-amber-950 via-yellow-950 to-amber-900',
+          iconColor: 'text-amber-400/80',
         };
     }
   };
@@ -66,7 +66,7 @@ export const Avatar: React.FC<AvatarProps> = ({ agentState, audioLevel = 0.3 }) 
         style={{
           boxShadow: `0 0 60px 20px ${config.glowColor}`,
         }}
-        className="absolute w-44 h-44 rounded-full border border-white/10 pointer-events-none"
+        className="absolute w-44 h-44 rounded-full border border-amber-400/20 pointer-events-none"
       />
 
       <motion.div
@@ -80,30 +80,30 @@ export const Avatar: React.FC<AvatarProps> = ({ agentState, audioLevel = 0.3 }) 
           ease: 'easeInOut',
           delay: 0.5,
         }}
-        className={`absolute w-56 h-56 rounded-full border ${config.ringColor} opacity-20 pointer-events-none`}
+        className={`absolute w-56 h-56 rounded-full border ${config.ringColor} opacity-30 pointer-events-none`}
       />
 
       {/* Main Avatar Circle */}
       <motion.div
         animate={{ scale: scaleEffect }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="relative w-36 h-36 rounded-full p-[3px] bg-gradient-to-tr from-blue-600 via-sky-400 to-teal-400 shadow-2xl z-10"
+        className="relative w-36 h-36 rounded-full p-[3px] bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-200 shadow-2xl z-10"
       >
-        <div className="w-full h-full rounded-full bg-[#090d16] flex flex-col items-center justify-center relative overflow-hidden group">
+        <div className="w-full h-full rounded-full bg-[#0f0b01] flex flex-col items-center justify-center relative overflow-hidden group">
           {/* Inner Animated Gradient Background */}
           <div
-            className={`absolute inset-0 opacity-30 bg-gradient-to-br ${config.accentGradient} blur-md transition-all duration-500`}
+            className={`absolute inset-0 opacity-40 bg-gradient-to-br ${config.accentGradient} blur-md transition-all duration-500`}
           />
 
           {/* Doobee Futuristic Logo / Icon */}
           <div className="relative z-10 flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600/40 to-sky-400/40 border border-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-amber-900/40 border border-amber-400/50 backdrop-blur-md flex items-center justify-center shadow-inner">
               <Bot className={`w-9 h-9 ${config.iconColor} drop-shadow-md`} />
             </div>
             
             <div className="flex items-center gap-1 mt-2">
-              <Sparkles className="w-3 h-3 text-sky-400 animate-pulse" />
-              <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">
+              <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+              <span className="text-[10px] font-extrabold tracking-widest text-amber-300 uppercase">
                 DOOBEE AI
               </span>
             </div>
@@ -125,7 +125,7 @@ export const Avatar: React.FC<AvatarProps> = ({ agentState, audioLevel = 0.3 }) 
                     repeat: Infinity,
                     delay: i * 0.1,
                   }}
-                  className="w-1 bg-sky-400 rounded-full"
+                  className="w-1 bg-amber-400 rounded-full"
                 />
               ))}
             </motion.div>
@@ -137,20 +137,20 @@ export const Avatar: React.FC<AvatarProps> = ({ agentState, audioLevel = 0.3 }) 
       <motion.div
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="mt-4 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700/60 backdrop-blur-md flex items-center gap-2 shadow-lg"
+        className="mt-4 px-3.5 py-1 rounded-full bg-amber-950/90 border border-amber-500/50 backdrop-blur-md flex items-center gap-2 shadow-lg"
       >
         <div
           className={`w-2 h-2 rounded-full ${
             agentState === 'speaking'
-              ? 'bg-blue-400 animate-ping'
+              ? 'bg-amber-400 animate-ping'
               : agentState === 'listening'
-              ? 'bg-emerald-400 animate-pulse'
+              ? 'bg-yellow-400 animate-pulse'
               : agentState === 'thinking'
-              ? 'bg-purple-400 animate-spin'
-              : 'bg-slate-500'
+              ? 'bg-amber-500 animate-spin'
+              : 'bg-amber-600'
           }`}
         />
-        <span className="text-xs font-medium text-slate-300">
+        <span className="text-xs font-bold text-amber-200">
           {config.badgeText}
         </span>
       </motion.div>

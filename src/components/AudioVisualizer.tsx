@@ -16,19 +16,19 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
 
   const getBarColor = (index: number) => {
     if (agentState === 'speaking') {
-      return index % 2 === 0 ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]' : 'bg-blue-500 shadow-[0_0_8px_rgba(37,99,235,0.6)]';
+      return index % 2 === 0 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]' : 'bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]';
     }
     if (agentState === 'listening') {
-      return index % 2 === 0 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.6)]';
+      return index % 2 === 0 ? 'bg-yellow-300 shadow-[0_0_8px_rgba(253,224,71,0.7)]' : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)]';
     }
     if (agentState === 'thinking') {
-      return index % 2 === 0 ? 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.6)]' : 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]';
+      return index % 2 === 0 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]' : 'bg-amber-600 shadow-[0_0_8px_rgba(217,119,6,0.7)]';
     }
-    return 'bg-slate-700/60';
+    return 'bg-amber-900/40';
   };
 
   return (
-    <div className="w-full max-w-sm h-14 my-2 px-4 py-2 rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-xl flex items-center justify-between gap-1 shadow-inner">
+    <div className="w-full max-w-sm h-14 my-2 px-4 py-2 rounded-2xl bg-amber-950/40 border border-amber-500/40 backdrop-blur-xl flex items-center justify-between gap-1 shadow-inner">
       {Array.from({ length: barsCount }).map((_, i) => {
         // Calculate heights dynamically based on audio level & bar position
         const centerDistance = Math.abs(i - barsCount / 2) / (barsCount / 2);

@@ -11,6 +11,74 @@ const WORKER_PRESETS: Record<string, { name: string; phone: string; rating: numb
 };
 
 /**
+ * Dynamically parses requested booking date and time slot from user speech.
+ */
+function parseDynamicDateAndTime(fullText: string): { bookingDate: string; bookingTimeSlot: string; scheduledTime: string } {
+  const now = new Date();
+  let targetDate = new Date(now);
+
+  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  
+  // 1. Detect future date keywords (next monday, next week, tomorrow, etc.)
+  if (fullText.includes('tomorrow')) {
+    targetDate.setDate(now.getDate() + 1);
+  } else if (fullText.includes('day after tomorrow')) {
+    targetDate.setDate(now.getDate() + 2);
+  } else if (fullText.includes('next week')) {
+    targetDate.setDate(now.getDate() + 7);
+  } else {
+    // Check specific days of week e.g. "next monday", "tuesday", "next friday"
+    for (let i = 0; i < daysOfWeek.length; i++) {
+      const dayName = daysOfWeek[i];
+      if (fullText.includes(`next ${dayName}`) || fullText.includes(dayName)) {
+        const currentDay = now.getDay();
+        let daysToAdd = (i - currentDay + 7) % 7;
+        if (daysToAdd === 0 || fullText.includes(`next ${dayName}`)) {
+          daysToAdd += 7; // Advance to next week's day
+        }
+        targetDate.setDate(now.getDate() + daysToAdd);
+        break;
+      }
+    }
+  }
+
+  const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+  const formattedDate = targetDate.toLocaleDateString('en-IN', dateOptions);
+
+  // 2. Detect Time Slot keywords (morning, afternoon, 10 am, 4 pm, etc.)
+  let timeSlot = '10:00 AM - 12:00 PM';
+  if (fullText.includes('morning')) {
+    timeSlot = '10:00 AM Slot (Morning)';
+  } else if (fullText.includes('afternoon')) {
+    timeSlot = '02:00 PM Slot (Afternoon)';
+  } else if (fullText.includes('evening')) {
+    timeSlot = '05:00 PM Slot (Evening)';
+  } else if (fullText.includes('night')) {
+    timeSlot = '07:00 PM Slot (Night)';
+  } else {
+    // Check for explicit time numbers e.g. "10 am", "2 pm", "4 pm", "11 am"
+    const timeMatch = fullText.match(/(\d{1,2})\s*(am|pm)/i);
+    if (timeMatch) {
+      const num = timeMatch[1];
+      const period = timeMatch[2].toUpperCase();
+      timeSlot = `${num}:00 ${period} Slot`;
+    } else if (targetDate.toDateString() === now.toDateString()) {
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      timeSlot = `${timeStr} (Within 45 Mins)`;
+    }
+  }
+
+  const isToday = targetDate.toDateString() === now.toDateString();
+  const scheduledTime = isToday ? `Today (${timeSlot})` : `${formattedDate} @ ${timeSlot}`;
+
+  return {
+    bookingDate: formattedDate,
+    bookingTimeSlot: timeSlot,
+    scheduledTime,
+  };
+}
+
+/**
  * Parses user and AI transcript messages to extract key service booking details accurately.
  */
 export function extractBookingDetailsFromTranscript(
@@ -39,7 +107,6 @@ export function extractBookingDetailsFromTranscript(
   }
 
   // 2. Clean & Extract Accurate Problem Description
-  // Filter out system greetings and generic AI responses
   const meaningfulUserTexts = messages
     .filter((m) => m.sender === 'user')
     .map((m) => m.text.trim())
@@ -86,7 +153,10 @@ export function extractBookingDetailsFromTranscript(
     }
   }
 
-  // 3. Worker details lookup
+  // 3. Extract requested date and time slot dynamically
+  const { bookingDate, bookingTimeSlot, scheduledTime } = parseDynamicDateAndTime(fullText);
+
+  // 4. Worker details lookup
   const worker = WORKER_PRESETS[detectedService] || {
     name: 'Ramesh Kumar',
     phone: '+91 98765 43210',
@@ -100,7 +170,7 @@ export function extractBookingDetailsFromTranscript(
 
   const now = new Date();
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-  const formattedDate = now.toLocaleDateString('en-IN', dateOptions);
+  const formattedNowDate = now.toLocaleDateString('en-IN', dateOptions);
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return {
@@ -110,14 +180,14 @@ export function extractBookingDetailsFromTranscript(
     customerName: 'Payal Rai',
     customerPhone: '+91 98112 34567',
     customerLocation: 'Sector 62, Noida, NCR (Verified GPS)',
-    bookingDate: formattedDate,
-    bookingTimeSlot: `${timeStr} (Within 45 Mins)`,
-    scheduledTime: `Today at ${timeStr}`,
+    bookingDate,
+    bookingTimeSlot,
+    scheduledTime,
     workerName: worker.name,
     workerPhone: worker.phone,
     workerRating: worker.rating,
     estimatedFee: worker.fee,
-    createdAt: `${formattedDate} ${timeStr}`,
+    createdAt: `${formattedNowDate} ${timeStr}`,
     status: 'confirmed',
   };
 }
