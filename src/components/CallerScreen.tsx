@@ -579,13 +579,21 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
       }
     };
 
+    const handleTrackUnsubscribed = (track: Track) => {
+      if (track.kind === Track.Kind.Audio) {
+        track.detach().forEach((el) => el.remove());
+      }
+    };
+
     room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+    room.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
     room.on(RoomEvent.TranscriptionReceived, handleTranscription);
     room.on(RoomEvent.DataReceived, handleDataReceived);
     room.on(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakers);
 
     return () => {
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+      room.off(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
       room.off(RoomEvent.TranscriptionReceived, handleTranscription);
       room.off(RoomEvent.DataReceived, handleDataReceived);
       room.off(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakers);
