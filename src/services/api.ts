@@ -3,7 +3,7 @@ import { StartSessionResponse } from '../types';
 const BACKEND_URL = 'https://theabeerrai-payal-2-0.hf.space/start';
 
 /**
- * Calls the backend POST endpoint to initiate a LiveKit voice session.
+ * Calls the backend POST endpoint to initiate a LiveKit voice session for BIS Saarthi.
  * Returns livekitUrl, token, roomName, and identity.
  */
 export async function startVoiceSession(): Promise<StartSessionResponse> {
@@ -28,6 +28,6 @@ export async function startVoiceSession(): Promise<StartSessionResponse> {
     return data;
   } catch (error: any) {
     console.error('API Error starting voice session:', error);
-    throw new Error(error?.message || 'Network error connecting to Doobee AI backend');
+    throw new Error(error?.message || 'Network error connecting to BIS Saarthi AI backend');
   }
 }

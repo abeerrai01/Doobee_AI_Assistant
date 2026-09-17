@@ -1,193 +1,204 @@
-import { TranscriptMessage, ExtractedBookingDetails } from '../types';
+import { TranscriptMessage, BISInquirySummary, BISSchemeType } from '../types';
+import { generateId, getCurrentTimestamp } from './formatters';
 
-const WORKER_PRESETS: Record<string, { name: string; phone: string; rating: number; fee: string }> = {
-  Plumber: { name: 'Ramesh Kumar', phone: '+91 98765 43210', rating: 4.9, fee: '₹349' },
-  Electrician: { name: 'Vikram Singh', phone: '+91 98123 45678', rating: 4.8, fee: '₹299' },
-  Carpenter: { name: 'Suresh Sharma', phone: '+91 97654 32109', rating: 4.9, fee: '₹399' },
-  Labour: { name: 'Amit Verma', phone: '+91 99887 76655', rating: 4.7, fee: '₹250' },
-  Painter: { name: 'Anil Yadav', phone: '+91 96543 21098', rating: 4.8, fee: '₹499' },
-  Cleaning: { name: 'Pooja Devi & Team', phone: '+91 95432 10987', rating: 4.9, fee: '₹599' },
-  'AC Repair': { name: 'Rajesh Mishra', phone: '+91 94321 09876', rating: 4.9, fee: '₹449' },
+interface StandardMatch {
+  standard: string;
+  title: string;
+  departmentCode: string;
+  departmentName: string;
+  scheme: BISSchemeType;
+  mandatory: 'Mandatory (QCO)' | 'Voluntary' | 'Verification Required';
+}
+
+const KNOWN_STANDARDS: Record<string, StandardMatch> = {
+  '10500': {
+    standard: 'IS 10500:2012',
+    title: 'Drinking Water Specification',
+    departmentCode: 'CHD',
+    departmentName: 'Chemical Department',
+    scheme: 'Scheme-I (ISI Mark)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '1293': {
+    standard: 'IS 1293:2019',
+    title: 'Plugs and Socket-Outlets of Rated Voltage up to and Including 250 Volts',
+    departmentCode: 'ETD',
+    departmentName: 'Electrotechnical Department',
+    scheme: 'Scheme-I (ISI Mark)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '13252': {
+    standard: 'IS 13252 (Part 1):2010',
+    title: 'Information Technology Equipment — Safety',
+    departmentCode: 'LITD',
+    departmentName: 'Electronics and IT Department',
+    scheme: 'CRS (Electronics)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '15820': {
+    standard: 'IS 15820:2009',
+    title: 'General Requirements for Competence of Assaying and Hallmarking Centres',
+    departmentCode: 'MTD',
+    departmentName: 'Metallurgical Engineering Department',
+    scheme: 'Hallmarking (6-Digit HUID)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '1786': {
+    standard: 'IS 1786:2008',
+    title: 'High Strength Deformed Steel Bars and Wires for Concrete Reinforcement',
+    departmentCode: 'MTD',
+    departmentName: 'Metallurgical Engineering Department',
+    scheme: 'Scheme-I (ISI Mark)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '4151': {
+    standard: 'IS 4151:2015',
+    title: 'Protective Helmets for Riders of Two-Wheeled Motor Vehicles',
+    departmentCode: 'TED',
+    departmentName: 'Transport Engineering Department',
+    scheme: 'Scheme-I (ISI Mark)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '9873': {
+    standard: 'IS 9873 (Part 1):2019',
+    title: 'Safety of Toys — Mechanical and Physical Properties',
+    departmentCode: 'PGD',
+    departmentName: 'Production and General Engineering Department',
+    scheme: 'Scheme-I (ISI Mark)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '14543': {
+    standard: 'IS 14543:2004',
+    title: 'Packaged Drinking Water (Other than Packaged Natural Mineral Water)',
+    departmentCode: 'FAD',
+    departmentName: 'Food and Agriculture Department',
+    scheme: 'Scheme-I (ISI Mark)',
+    mandatory: 'Mandatory (QCO)',
+  },
+  '456': {
+    standard: 'IS 456:2000',
+    title: 'Plain and Reinforced Concrete — Code of Practice',
+    departmentCode: 'CED',
+    departmentName: 'Civil Engineering Department',
+    scheme: 'Scheme-I (ISI Mark)',
+    mandatory: 'Voluntary',
+  },
 };
 
 /**
- * Dynamically parses requested booking date and time slot from user speech.
+ * Parses user and AI transcript messages to extract key BIS Standards inquiry details.
  */
-function parseDynamicDateAndTime(fullText: string): { bookingDate: string; bookingTimeSlot: string; scheduledTime: string } {
-  const now = new Date();
-  let targetDate = new Date(now);
-
-  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  
-  // 1. Detect future date keywords (next monday, next week, tomorrow, etc.)
-  if (fullText.includes('tomorrow')) {
-    targetDate.setDate(now.getDate() + 1);
-  } else if (fullText.includes('day after tomorrow')) {
-    targetDate.setDate(now.getDate() + 2);
-  } else if (fullText.includes('next week')) {
-    targetDate.setDate(now.getDate() + 7);
-  } else {
-    // Check specific days of week e.g. "next monday", "tuesday", "next friday"
-    for (let i = 0; i < daysOfWeek.length; i++) {
-      const dayName = daysOfWeek[i];
-      if (fullText.includes(`next ${dayName}`) || fullText.includes(dayName)) {
-        const currentDay = now.getDay();
-        let daysToAdd = (i - currentDay + 7) % 7;
-        if (daysToAdd === 0 || fullText.includes(`next ${dayName}`)) {
-          daysToAdd += 7; // Advance to next week's day
-        }
-        targetDate.setDate(now.getDate() + daysToAdd);
-        break;
-      }
-    }
-  }
-
-  const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-  const formattedDate = targetDate.toLocaleDateString('en-IN', dateOptions);
-
-  // 2. Detect Time Slot keywords (morning, afternoon, 10 am, 4 pm, etc.)
-  let timeSlot = '10:00 AM - 12:00 PM';
-  if (fullText.includes('morning')) {
-    timeSlot = '10:00 AM Slot (Morning)';
-  } else if (fullText.includes('afternoon')) {
-    timeSlot = '02:00 PM Slot (Afternoon)';
-  } else if (fullText.includes('evening')) {
-    timeSlot = '05:00 PM Slot (Evening)';
-  } else if (fullText.includes('night')) {
-    timeSlot = '07:00 PM Slot (Night)';
-  } else {
-    // Check for explicit time numbers e.g. "10 am", "2 pm", "4 pm", "11 am"
-    const timeMatch = fullText.match(/(\d{1,2})\s*(am|pm)/i);
-    if (timeMatch) {
-      const num = timeMatch[1];
-      const period = timeMatch[2].toUpperCase();
-      timeSlot = `${num}:00 ${period} Slot`;
-    } else if (targetDate.toDateString() === now.toDateString()) {
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      timeSlot = `${timeStr} (Within 45 Mins)`;
-    }
-  }
-
-  const isToday = targetDate.toDateString() === now.toDateString();
-  const scheduledTime = isToday ? `Today (${timeSlot})` : `${formattedDate} @ ${timeSlot}`;
-
-  return {
-    bookingDate: formattedDate,
-    bookingTimeSlot: timeSlot,
-    scheduledTime,
-  };
-}
-
-/**
- * Parses user and AI transcript messages to extract key service booking details accurately.
- */
-export function extractBookingDetailsFromTranscript(
-  messages: TranscriptMessage[],
-  servicePreset?: string
-): ExtractedBookingDetails {
-  // Combine all transcript text
+export function extractBISInquiryFromTranscript(
+  messages: TranscriptMessage[]
+): BISInquirySummary {
   const fullText = messages.map((m) => m.text).join(' ').toLowerCase();
 
-  // 1. Detect Service Type
-  let detectedService = servicePreset || 'Home Service';
-  if (!servicePreset) {
-    if (fullText.includes('plumb') || fullText.includes('pipe') || fullText.includes('tap') || fullText.includes('leak') || fullText.includes('water')) {
-      detectedService = 'Plumber';
-    } else if (fullText.includes('electr') || fullText.includes('wire') || fullText.includes('switch') || fullText.includes('mcb') || fullText.includes('power')) {
-      detectedService = 'Electrician';
-    } else if (fullText.includes('ac') || fullText.includes('cool') || fullText.includes('filter') || fullText.includes('gas')) {
-      detectedService = 'AC Repair';
-    } else if (fullText.includes('paint') || fullText.includes('wall') || fullText.includes('color')) {
-      detectedService = 'Painter';
-    } else if (fullText.includes('clean') || fullText.includes('wash') || fullText.includes('sofa') || fullText.includes('deep')) {
-      detectedService = 'Cleaning';
-    } else if (fullText.includes('carpent') || fullText.includes('door') || fullText.includes('lock') || fullText.includes('wood')) {
-      detectedService = 'Carpenter';
-    }
-  }
-
-  // 2. Clean & Extract Accurate Problem Description
-  const meaningfulUserTexts = messages
-    .filter((m) => m.sender === 'user')
-    .map((m) => m.text.trim())
-    .filter((txt) => {
-      const lower = txt.toLowerCase();
-      return (
-        !lower.includes('hello') &&
-        !lower.includes('hi') &&
-        !lower.includes('thank you') &&
-        !lower.includes('thanks') &&
-        !lower.includes('ok') &&
-        !lower.includes('bye') &&
-        txt.length > 2
-      );
-    });
-
-  let problemSummary = '';
-  if (meaningfulUserTexts.length > 0) {
-    problemSummary = meaningfulUserTexts.join('. ').slice(0, 160);
+  // 1. Check for specific IS Standard numbers
+  let matchedStandard: StandardMatch | null = null;
+  const isMatch = fullText.match(/\bis\s*(\d{3,5})\b/i);
+  if (isMatch && KNOWN_STANDARDS[isMatch[1]]) {
+    matchedStandard = KNOWN_STANDARDS[isMatch[1]];
   } else {
-    // Fallback based on detected service
-    switch (detectedService) {
-      case 'Plumber':
-        problemSummary = 'Water pipe leakage & bathroom tap fitting inspection.';
-        break;
-      case 'Electrician':
-        problemSummary = 'Short circuit diagnosis & MCB switchboard repair.';
-        break;
-      case 'AC Repair':
-        problemSummary = 'Split AC deep servicing & gas level check.';
-        break;
-      case 'Painter':
-        problemSummary = 'Interior wall touch-up & moisture waterproofing.';
-        break;
-      case 'Cleaning':
-        problemSummary = 'Full home deep sanitization & sofa shampooing.';
-        break;
-      case 'Carpenter':
-        problemSummary = 'Door lock repair & furniture assembly work.';
-        break;
-      default:
-        problemSummary = 'Professional technician home visit & diagnostic service.';
-        break;
+    // Check product keywords if explicit number wasn't caught
+    if (fullText.includes('drinking water') || fullText.includes('water test') || fullText.includes('tds') || fullText.includes('ph value')) {
+      matchedStandard = KNOWN_STANDARDS['10500'];
+    } else if (fullText.includes('plug') || fullText.includes('socket') || fullText.includes('adapter')) {
+      matchedStandard = KNOWN_STANDARDS['1293'];
+    } else if (fullText.includes('hallmark') || fullText.includes('huid') || fullText.includes('gold') || fullText.includes('silver') || fullText.includes('jewel')) {
+      matchedStandard = KNOWN_STANDARDS['15820'];
+    } else if (fullText.includes('laptop') || fullText.includes('mobile') || fullText.includes('it equipment') || fullText.includes('crs')) {
+      matchedStandard = KNOWN_STANDARDS['13252'];
+    } else if (fullText.includes('steel') || fullText.includes('tmt') || fullText.includes('rebar')) {
+      matchedStandard = KNOWN_STANDARDS['1786'];
+    } else if (fullText.includes('helmet') || fullText.includes('two wheeler')) {
+      matchedStandard = KNOWN_STANDARDS['4151'];
+    } else if (fullText.includes('toy') || fullText.includes('child safety')) {
+      matchedStandard = KNOWN_STANDARDS['9873'];
     }
   }
 
-  // 3. Extract requested date and time slot dynamically
-  const { bookingDate, bookingTimeSlot, scheduledTime } = parseDynamicDateAndTime(fullText);
+  // 2. Determine scheme
+  let scheme: BISSchemeType = 'General Standards Guidance';
+  if (matchedStandard) {
+    scheme = matchedStandard.scheme;
+  } else if (fullText.includes('crs') || fullText.includes('registration')) {
+    scheme = 'CRS (Electronics)';
+  } else if (fullText.includes('fmcs') || fullText.includes('foreign') || fullText.includes('import')) {
+    scheme = 'FMCS (Foreign Manufacturers)';
+  } else if (fullText.includes('hallmark') || fullText.includes('huid')) {
+    scheme = 'Hallmarking (6-Digit HUID)';
+  } else if (fullText.includes('scheme-ii') || fullText.includes('simplified')) {
+    scheme = 'Scheme-II (Simplified)';
+  } else if (fullText.includes('isi') || fullText.includes('scheme-i') || fullText.includes('cml') || fullText.includes('cm/l')) {
+    scheme = 'Scheme-I (ISI Mark)';
+  }
 
-  // 4. Worker details lookup
-  const worker = WORKER_PRESETS[detectedService] || {
-    name: 'Ramesh Kumar',
-    phone: '+91 98765 43210',
-    rating: 4.9,
-    fee: '₹349',
-  };
+  // 3. Determine topic
+  let topic = 'General BIS Conformity Assessment';
+  if (matchedStandard) {
+    topic = `${matchedStandard.standard} — ${matchedStandard.title}`;
+  } else if (fullText.includes('hallmark') || fullText.includes('huid')) {
+    topic = 'Gold & Silver Hallmarking (6-Digit HUID)';
+  } else if (fullText.includes('crs')) {
+    topic = 'Compulsory Registration Scheme (CRS)';
+  } else if (fullText.includes('fmcs')) {
+    topic = 'Foreign Manufacturers Certification Scheme (FMCS)';
+  } else if (fullText.includes('qco') || fullText.includes('quality control order')) {
+    topic = 'Quality Control Orders (QCO) Regulatory Scope';
+  } else if (fullText.includes('verify') || fullText.includes('cml') || fullText.includes('licence')) {
+    topic = 'ISI Mark Licence Verification (CM/L)';
+  }
 
-  // Generate unique booking reference ID
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
-  const bookingId = `DB-GOLD-${randomNum}`;
+  // 4. Generate Key Guidance Points
+  const keyGuidance: string[] = [];
+  if (scheme === 'Hallmarking (6-Digit HUID)') {
+    keyGuidance.push('Verify 6-digit alphanumeric HUID on the BIS Care App before purchase');
+    keyGuidance.push('Mandatory 3 hallmarks: BIS logo, purity/fineness mark (e.g. 22K916), and unique HUID');
+    keyGuidance.push('Registration required for jewellers under BIS Hallmarking regulations');
+  } else if (scheme === 'CRS (Electronics)') {
+    keyGuidance.push('Self-declaration of conformity based on test reports from BIS-recognized labs');
+    keyGuidance.push('Unique R-number must be displayed on product packaging alongside the BIS logo');
+    keyGuidance.push('CRS applies to notified IT & electronics goods under MeitY / BIS orders');
+  } else if (scheme === 'FMCS (Foreign Manufacturers)') {
+    keyGuidance.push('Requires physical factory audit abroad by designated BIS technical officers');
+    keyGuidance.push('Independent in-country testing and appointment of an Authorized Indian Representative (AIR)');
+  } else {
+    keyGuidance.push('Product certification follows Scheme-I (factory audit + sample lab testing)');
+    keyGuidance.push('Verify CM/L number on manakonline.in or the BIS Care App for authenticity');
+    keyGuidance.push('Ensure compliance with current Quality Control Orders (QCO) issued by the Ministry');
+  }
 
   const now = new Date();
-  const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-  const formattedNowDate = now.toLocaleDateString('en-IN', dateOptions);
-  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 
   return {
-    bookingId,
-    serviceType: detectedService,
-    problemSummary,
-    customerName: 'Payal Rai',
-    customerPhone: '+91 98112 34567',
-    customerLocation: 'Sector 62, Noida, NCR (Verified GPS)',
-    bookingDate,
-    bookingTimeSlot,
-    scheduledTime,
-    workerName: worker.name,
-    workerPhone: worker.phone,
-    workerRating: worker.rating,
-    estimatedFee: worker.fee,
-    createdAt: `${formattedNowDate} ${timeStr}`,
-    status: 'confirmed',
+    inquiryId: `BIS-${now.getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+    inquiryDate: dateStr,
+    topic,
+    detectedStandard: matchedStandard?.standard,
+    standardTitle: matchedStandard?.title,
+    departmentCode: matchedStandard?.departmentCode || 'CHD',
+    departmentName: matchedStandard?.departmentName || 'Bureau of Indian Standards Technical Division',
+    scheme,
+    mandatoryStatus: matchedStandard?.mandatory || 'Verification Required',
+    keyGuidance,
+    officialPortals: [
+      { name: 'BIS Official Portal', url: 'https://www.bis.gov.in' },
+      { name: 'e-BIS Manakonline', url: 'https://www.manakonline.in' },
+      { name: 'Standards Portal', url: 'https://standards.bis.gov.in' },
+      { name: 'National Single Window System', url: 'https://www.nsws.gov.in' },
+    ],
+    verificationMethod: scheme === 'Hallmarking (6-Digit HUID)'
+      ? 'BIS Care App (Verify HUID feature)'
+      : 'BIS Care App (Verify CM/L or R-Number) / manakonline.in',
+    notes: 'Consult official BIS gazette notifications and manakonline.in for legally binding compliance determinations.',
+    createdAt: getCurrentTimestamp(),
   };
 }
+
+// Backwards compatibility alias
+export const extractBookingDetailsFromTranscript = extractBISInquiryFromTranscript;

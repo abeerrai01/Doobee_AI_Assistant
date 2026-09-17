@@ -29,56 +29,35 @@ export interface TranscriptMessage {
   isFinal?: boolean;
 }
 
-export interface ServiceCategory {
-  id: string;
+export type BISSchemeType =
+  | 'Scheme-I (ISI Mark)'
+  | 'Scheme-II (Simplified)'
+  | 'CRS (Electronics)'
+  | 'FMCS (Foreign Manufacturers)'
+  | 'Hallmarking (6-Digit HUID)'
+  | 'Eco Mark'
+  | 'General Standards Guidance';
+
+export interface BISDepartmentInfo {
+  code: string;
   name: string;
-  iconName: string;
   description: string;
-  color: string;
-  badge?: string;
-  popularServices: string[];
+  exampleStandard: string;
 }
 
-export interface BookingPayload {
-  serviceType: string;
-  userAddress?: string;
-  scheduledTime?: string;
-  description?: string;
-  contactNumber?: string;
-}
-
-export interface WorkerInfo {
-  id: string;
-  name: string;
-  phone: string;
-  rating: number;
-  service: string;
-  estimatedArrival: string;
-  avatarUrl?: string;
-}
-
-export interface BookingConfirmation {
-  bookingId: string;
-  serviceType: string;
-  status: 'confirmed' | 'pending' | 'assigned';
-  worker?: WorkerInfo;
+export interface BISInquirySummary {
+  inquiryId: string;
+  inquiryDate: string;
+  topic: string;
+  detectedStandard?: string;
+  standardTitle?: string;
+  departmentCode?: string;
+  departmentName?: string;
+  scheme: BISSchemeType;
+  mandatoryStatus: 'Mandatory (QCO)' | 'Voluntary' | 'Verification Required';
+  keyGuidance: string[];
+  officialPortals: { name: string; url: string }[];
+  verificationMethod: string;
+  notes: string;
   createdAt: string;
-}
-
-export interface ExtractedBookingDetails {
-  bookingId: string;
-  serviceType: string;
-  problemSummary: string;
-  customerName: string;
-  customerPhone: string;
-  customerLocation: string;
-  bookingDate: string;
-  bookingTimeSlot: string;
-  scheduledTime: string;
-  workerName: string;
-  workerPhone: string;
-  workerRating: number;
-  estimatedFee: string;
-  createdAt: string;
-  status: 'confirmed' | 'assigned' | 'in_progress';
 }

@@ -7,16 +7,38 @@ import {
 } from '@livekit/components-react';
 import { RoomEvent, Track, TrackPublication, Participant } from 'livekit-client';
 import { motion } from 'framer-motion';
-import { Menu, Mic, MicOff, PhoneCall, PhoneOff, Loader2, Volume2, ShieldCheck, Maximize, Minimize } from 'lucide-react';
+import {
+  Menu,
+  Mic,
+  MicOff,
+  PhoneCall,
+  PhoneOff,
+  Loader2,
+  Volume2,
+  ShieldCheck,
+  Maximize,
+  Minimize,
+  Sparkles,
+  HelpCircle,
+  FileCheck2,
+} from 'lucide-react';
 
-import { RedOrb } from './RedOrb';
-import { BookingSummaryCard } from './BookingSummaryCard';
-import { CallState, AgentState, StartSessionResponse, TranscriptMessage, ExtractedBookingDetails } from '../types';
+import { WhiteOrb } from './RedOrb';
+import { BISSummaryCard } from './BISSummaryCard';
+import { CallState, AgentState, StartSessionResponse, TranscriptMessage, BISInquirySummary } from '../types';
 import { useAudioLevel } from '../hooks/useAudioLevel';
 import { startVoiceSession } from '../services/api';
-import { extractBookingDetailsFromTranscript } from '../utils/summaryExtractor';
+import { extractBISInquiryFromTranscript } from '../utils/summaryExtractor';
 import { generateId, getCurrentTimestamp } from '../utils/formatters';
+import { getFastReply } from '../services/bisSaarthi';
 import blueSphereImg from '../assets/blue-sphere.jpg';
+
+const QUICK_PROMPTS = [
+  'IS 10500 Drinking Water',
+  'Gold Hallmarking 6-Digit HUID',
+  'CRS Electronics Registration',
+  'ISI Mark & CM/L Verification',
+];
 
 export const CallerScreen: React.FC = () => {
   const [callState, setCallState] = useState<CallState>('idle');
@@ -26,8 +48,8 @@ export const CallerScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
 
-  // Post-Call Booking Summary State
-  const [summaryDetails, setSummaryDetails] = useState<ExtractedBookingDetails | null>(null);
+  // Post-Call Standards Advisory Summary State
+  const [summaryDetails, setSummaryDetails] = useState<BISInquirySummary | null>(null);
   const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]);
 
   // Fullscreen state and 5-tap counter
@@ -102,7 +124,6 @@ export const CallerScreen: React.FC = () => {
     if (now - lastTapTimeRef.current < 1500) {
       const nextCount = tapCount + 1;
       if (nextCount >= 5) {
-        // 5 Taps reached: Exit Fullscreen!
         if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
           try {
             if (document.exitFullscreen) {
@@ -124,40 +145,42 @@ export const CallerScreen: React.FC = () => {
     lastTapTimeRef.current = now;
   }, [tapCount]);
 
-  // Audio level generator for smooth visualizer and lavender orb
+  // Audio level generator for smooth visualizer and pearl orb
   const isSpeaking = agentState === 'speaking';
   const audioLevel = useAudioLevel(isSpeaking, agentState);
 
-  // Initiates connection automatically or on click
-  const handleConnect = useCallback(async () => {
+  // Initiates connection to voice session
+  const handleConnect = useCallback(async (presetPrompt?: string) => {
     if (isLoading) return;
     setIsLoading(true);
     setErrorMessage(null);
     setCallState('connecting');
     setSummaryDetails(null);
 
-    // Initial greeting transcript
+    const initialGreeting = presetPrompt
+      ? `Hello! Welcome to BIS Saarthi. I see you are inquiring about ${presetPrompt}. How can I assist you with the applicable Indian Standards or certification?`
+      : 'Hello! I am BIS Saarthi, your AI assistant for Indian Standards, BIS certification, hallmarking, and product quality. How can I help you today?';
+
     setTranscriptMessages([
       {
         id: generateId(),
         sender: 'ai',
-        text: 'Hello! Welcome to Doobee AI Voice Assistant. How can I help you today?',
+        text: initialGreeting,
         timestamp: getCurrentTimestamp(),
       },
     ]);
 
     try {
-      // 1. Request microphone permission first so user browser grants audio input
+      // 1. Request microphone permission
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Release initial stream so LiveKit can consume it cleanly
         stream.getTracks().forEach((t) => t.stop());
       } catch (micErr) {
         console.warn('Microphone permission warning:', micErr);
       }
 
-      // 2. Fetch session credentials from Hugging Face backend API
-      console.log('Initiating voice session POST request...');
+      // 2. Fetch session credentials from backend API
+      console.log('Initiating BIS Saarthi voice session...');
       const session = await startVoiceSession();
       console.log('Session created successfully:', session);
       setSessionCredentials(session);
@@ -169,21 +192,21 @@ export const CallerScreen: React.FC = () => {
       }, 3500);
     } catch (error: any) {
       console.error('Call initialization failed:', error);
-      setErrorMessage(error?.message || 'Failed to connect to Doobee AI server');
+      setErrorMessage(error?.message || 'Failed to connect to BIS Saarthi server');
       setCallState('error');
     } finally {
       setIsLoading(false);
     }
   }, [isLoading]);
 
-  // Handles disconnection and triggers extracted summary receipt
+  // Handles disconnection and triggers extracted standards advisory summary
   const handleEndCall = useCallback(() => {
     setCallState('disconnected');
     setAgentState('idle');
     setSessionCredentials(null);
 
-    // Extract booking details from accumulated transcript messages!
-    const extracted = extractBookingDetailsFromTranscript(transcriptMessages);
+    // Extract BIS standards inquiry details from accumulated transcript messages
+    const extracted = extractBISInquiryFromTranscript(transcriptMessages);
     setSummaryDetails(extracted);
 
     setTimeout(() => {
@@ -197,7 +220,7 @@ export const CallerScreen: React.FC = () => {
     setTranscriptMessages([]);
   }, []);
 
-  // Lock mobile body touchmove to prevent rubber-banding / downward elastic scrolling
+  // Lock mobile body touchmove to prevent rubber-banding
   useEffect(() => {
     const preventScroll = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
@@ -218,31 +241,37 @@ export const CallerScreen: React.FC = () => {
   const isFsActive = isFullscreen || isPseudoFs;
 
   return (
-    <div className={`w-full h-[100dvh] max-h-[100dvh] bg-[#0c0800] text-white flex flex-col items-center justify-center p-0 sm:p-4 selection:bg-amber-500 relative overflow-hidden fixed inset-0 touch-none overscroll-none select-none ${
+    <div className={`w-full h-[100dvh] max-h-[100dvh] bg-slate-100 text-slate-900 flex flex-col items-center justify-center p-0 sm:p-4 selection:bg-blue-600 selection:text-white relative overflow-hidden fixed inset-0 touch-none overscroll-none select-none ${
       isFsActive ? 'z-[9999]' : ''
     }`}>
-      {/* Background Golden Ambient Radial Glow */}
+      {/* Background Soft Pearl Aura Glow */}
       <div
         className={`absolute inset-0 transition-all duration-700 pointer-events-none ${
-          isSpeaking ? 'golden-ambient-glow-speaking' : 'golden-ambient-glow'
+          isSpeaking ? 'white-ambient-glow-speaking' : 'white-ambient-glow'
         }`}
       />
 
-      {/* Mobile Phone Mockup Outer Frame Container */}
+      {/* Outer Phone Frame Container */}
       <div className={`w-full h-[100dvh] max-h-[100dvh] ${
         isFsActive
           ? 'max-w-none rounded-none border-0'
-          : 'sm:min-h-0 sm:max-w-[400px] sm:h-[780px] sm:max-h-[92vh] sm:rounded-[48px] sm:border-[6px]'
-      } bg-[#0e0901] rounded-none border-0 border-amber-900/60 shadow-none sm:shadow-[0_0_90px_rgba(245,158,11,0.4)] flex flex-col justify-between p-4 pt-safe pb-safe sm:p-6 relative overflow-hidden z-10 border-t border-amber-500/40 touch-none overscroll-none`}>
+          : 'sm:min-h-0 sm:max-w-[420px] sm:h-[800px] sm:max-h-[94vh] sm:rounded-[48px] sm:border sm:border-slate-200/80 sm:shadow-2xl sm:shadow-slate-300/60'
+      } bg-white rounded-none border-0 flex flex-col justify-between p-4 pt-safe pb-safe sm:p-6 relative overflow-hidden z-10 touch-none overscroll-none`}>
         
-        {/* Top Phone Status & Header Bar */}
+        {/* Top Status & Header Bar */}
         <header className="w-full flex items-center justify-between z-20 pt-1 sm:pt-2 px-1">
-          {/* Hamburger Menu Icon */}
-          <button className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/30 hover:bg-amber-500/20 transition-colors cursor-pointer">
-            <Menu className="w-5 h-5 text-amber-300" />
-          </button>
+          {/* Information / Help Badge */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center shadow-xs">
+              <FileCheck2 className="w-4 h-4 text-blue-700" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold tracking-tight text-slate-800">BIS Saarthi</span>
+              <span className="text-[9px] text-slate-500 font-medium -mt-0.5">Team AKRIX</span>
+            </div>
+          </div>
 
-          {/* Fullscreen Toggle Button & User Icon Avatar / Caller ID */}
+          {/* Fullscreen Toggle Button & Caller ID Avatar */}
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => {
@@ -250,37 +279,36 @@ export const CallerScreen: React.FC = () => {
                 toggleFullscreen();
               }}
               onPointerDown={(e) => {
-                // Prevent ghost click delays on mobile touch devices
                 e.preventDefault();
                 toggleFullscreen();
               }}
               title={isFsActive ? "Exit Fullscreen (or tap center 5 times)" : "Enter Fullscreen Mode"}
-              className="px-3 py-1.5 rounded-full bg-amber-950/90 border border-amber-400/60 hover:bg-amber-900 text-amber-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition-all z-30 select-none"
+              className="px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all z-30 select-none"
             >
               {isFsActive ? (
                 <>
-                  <Minimize className="w-3.5 h-3.5 text-amber-300" />
+                  <Minimize className="w-3.5 h-3.5 text-slate-600" />
                   <span>Exit FS</span>
                 </>
               ) : (
                 <>
-                  <Maximize className="w-3.5 h-3.5 text-amber-300" />
+                  <Maximize className="w-3.5 h-3.5 text-slate-600" />
                   <span>Fullscreen</span>
                 </>
               )}
             </button>
 
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-200 p-[2px] shadow-lg shadow-amber-950/80">
-              <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-                <img src={blueSphereImg} alt="Caller ID" className="w-full h-full object-cover rounded-full" />
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 via-sky-500 to-indigo-600 p-[2px] shadow-xs">
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                <img src={blueSphereImg} alt="BIS Saarthi" className="w-full h-full object-cover rounded-full" />
               </div>
             </div>
           </div>
         </header>
 
-        {/* Conditional Content: Booking Summary Card vs Connected Call vs Disconnected */}
+        {/* Conditional Content: Standards Advisory vs Connected Call vs Disconnected */}
         {summaryDetails ? (
-          <BookingSummaryCard summary={summaryDetails} onNewCall={handleResetNewCall} />
+          <BISSummaryCard summary={summaryDetails} onNewCall={handleResetNewCall} />
         ) : sessionCredentials && callState === 'connected' ? (
           <LiveKitRoom
             serverUrl={sessionCredentials.livekitUrl}
@@ -331,7 +359,7 @@ interface DisconnectedCallerUIProps {
   callState: CallState;
   agentState: AgentState;
   audioLevel: number;
-  onConnect: () => void;
+  onConnect: (preset?: string) => void;
   isLoading: boolean;
   errorMessage: string | null;
   onCenterTap?: () => void;
@@ -351,10 +379,10 @@ const DisconnectedCallerUI: React.FC<DisconnectedCallerUIProps> = ({
   isFullscreen = false,
 }) => {
   return (
-    <div className="w-full flex-1 flex flex-col items-center justify-between z-10 pt-4">
-      {/* Center 3D Golden Orb Sphere */}
+    <div className="w-full flex-1 flex flex-col items-center justify-between z-10 pt-2 sm:pt-4">
+      {/* Center 3D White Pearl Sphere */}
       <div className="flex-1 flex items-center justify-center">
-        <RedOrb
+        <WhiteOrb
           agentState={agentState}
           callState={callState}
           audioLevel={audioLevel}
@@ -364,52 +392,66 @@ const DisconnectedCallerUI: React.FC<DisconnectedCallerUIProps> = ({
         />
       </div>
 
-      {/* Main Headlines matching mockup */}
-      <div className="text-center my-4 space-y-2">
+      {/* Main Headlines */}
+      <div className="text-center my-3 space-y-1.5 w-full">
         {/* Caller ID Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-950/80 border border-amber-400/40 backdrop-blur-md shadow-md mx-auto">
-          <img src={blueSphereImg} alt="Caller ID" className="w-4 h-4 rounded-full object-cover border border-amber-400/50" />
-          <span className="text-xs font-semibold text-amber-200">Caller ID: Doobee AI</span>
-          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 shadow-xs mx-auto">
+          <img src={blueSphereImg} alt="BIS Saarthi" className="w-4 h-4 rounded-full object-cover border border-blue-300" />
+          <span className="text-xs font-semibold">Caller ID: BIS Saarthi</span>
+          <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
         </div>
 
-        <p className="text-sm font-medium text-amber-200/80 tracking-wide">
-          {callState === 'connecting' ? 'Connecting to Doobee...' : 'Hello!'}
+        <p className="text-xs font-medium text-slate-500 tracking-wide">
+          {callState === 'connecting' ? 'Connecting to BIS Saarthi...' : 'National Standards AI Assistant'}
         </p>
 
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-100 via-amber-300 to-yellow-400">
-          How Can I Help You Today?
+        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 leading-tight">
+          How Can I Help With Indian Standards?
         </h1>
 
         {errorMessage && (
-          <p className="text-xs text-rose-300 font-medium mt-1 px-2">
+          <p className="text-xs text-rose-600 font-medium mt-1 px-2">
             {errorMessage}
           </p>
         )}
+
+        {/* Quick Topic Chips */}
+        <div className="flex flex-wrap justify-center gap-1.5 pt-2 max-w-sm mx-auto">
+          {QUICK_PROMPTS.map((prompt, idx) => (
+            <button
+              key={idx}
+              onClick={() => onConnect(prompt)}
+              disabled={isLoading}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-slate-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 border border-slate-200 text-slate-600 font-medium transition-colors cursor-pointer shadow-2xs"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Bottom Golden Translucent Pill Control matching reference design */}
-      <div className="w-full mb-3">
+      {/* Bottom White Translucent Pill Control */}
+      <div className="w-full mb-2">
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
-          onClick={onConnect}
+          onClick={() => onConnect()}
           disabled={isLoading}
-          className="w-full h-16 rounded-3xl golden-pill-container px-6 flex items-center justify-between border border-amber-400/50 cursor-pointer group shadow-xl shadow-amber-950/60"
+          className="w-full h-15 rounded-3xl white-pill-container px-5 flex items-center justify-between border border-slate-200 cursor-pointer group shadow-lg"
         >
-          <span className="text-amber-100 text-sm font-bold group-hover:text-white transition-colors flex items-center gap-2">
+          <span className="text-slate-700 text-sm font-semibold group-hover:text-blue-700 transition-colors flex items-center gap-2">
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
-                <span>Connecting to Doobee...</span>
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                <span>Connecting to BIS Saarthi...</span>
               </>
             ) : (
-              <span>Ask anything...</span>
+              <span>Ask about Indian Standards, ISI, HUID...</span>
             )}
           </span>
 
-          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-            <PhoneCall className="w-5 h-5 text-black fill-current" />
+          <div className="w-10 h-10 rounded-full bg-blue-600 group-hover:bg-blue-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-all">
+            <PhoneCall className="w-4 h-4 fill-current" />
           </div>
         </motion.button>
       </div>
@@ -452,20 +494,17 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
   useEffect(() => {
     if (!room) return;
 
-    // 1. Enable local microphone track so backend worker agent receives user speech!
     if (localParticipant) {
       localParticipant.setMicrophoneEnabled(true).catch((err) => {
         console.warn('Auto mic enable warning:', err);
       });
     }
 
-    // 2. Unlock browser audio playback context
     room.startAudio().catch((err) => {
       console.warn('Audio start warning:', err);
       setAudioUnlocked(false);
     });
 
-    // 3. Explicitly attach & play remote audio tracks when published by AI Agent
     const handleTrackSubscribed = (
       track: Track,
       publication: TrackPublication,
@@ -483,7 +522,6 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
       }
     };
 
-    // 4. Handle LiveKit transcription received event
     const handleTranscription = (transcripts: any[], participant?: Participant) => {
       if (!setTranscriptMessages) return;
       transcripts.forEach((t) => {
@@ -504,7 +542,6 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
       });
     };
 
-    // 5. Handle DataReceived JSON payload packets
     const handleDataReceived = (payload: Uint8Array, participant?: Participant) => {
       if (!setTranscriptMessages) return;
       try {
@@ -525,7 +562,6 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
       } catch (e) {}
     };
 
-    // 6. Handle active speakers to update agent state
     const handleActiveSpeakers = (speakers: Participant[]) => {
       const isRemoteSpeaking = speakers.some(
         (s) => localParticipant && s.identity !== localParticipant.identity
@@ -574,10 +610,10 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col items-center justify-between z-10 pt-4">
-      {/* Center 3D Lavender Orb Sphere */}
+    <div className="w-full flex-1 flex flex-col items-center justify-between z-10 pt-2 sm:pt-4">
+      {/* Center 3D White Pearl Sphere */}
       <div className="flex-1 flex items-center justify-center">
-        <RedOrb
+        <WhiteOrb
           agentState={agentState}
           callState={callState}
           audioLevel={audioLevel}
@@ -587,43 +623,43 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
         />
       </div>
 
-      {/* Main Headlines matching mockup */}
-      <div className="text-center my-4 space-y-2">
+      {/* Main Headlines */}
+      <div className="text-center my-3 space-y-1.5">
         {/* Caller ID Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-950/60 border border-purple-400/30 backdrop-blur-md shadow-md mx-auto">
-          <img src={blueSphereImg} alt="Caller ID" className="w-4 h-4 rounded-full object-cover border border-purple-300/40" />
-          <span className="text-xs font-medium text-purple-200">Caller ID: Doobee AI</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 shadow-xs mx-auto">
+          <img src={blueSphereImg} alt="BIS Saarthi" className="w-4 h-4 rounded-full object-cover border border-blue-300" />
+          <span className="text-xs font-semibold">Caller ID: BIS Saarthi</span>
         </div>
 
-        <p className="text-sm font-medium text-purple-200/80 tracking-wide">
-          {agentState === 'speaking' ? 'Doobee Speaking...' : 'Doobee Listening...'}
+        <p className="text-xs font-medium text-slate-500 tracking-wide">
+          {agentState === 'speaking' ? 'BIS Saarthi Speaking...' : 'BIS Saarthi Listening...'}
         </p>
 
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white leading-tight">
-          How Can I Help You Today?
+        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 leading-tight">
+          Bureau of Indian Standards Advisory
         </h1>
 
         {!audioUnlocked && (
           <button
             onClick={unlockAudioManually}
-            className="mt-2 px-3 py-1 rounded-full bg-purple-950 border border-purple-400 text-xs text-purple-200 flex items-center gap-1.5 mx-auto cursor-pointer animate-bounce"
+            className="mt-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-300 text-xs text-blue-700 flex items-center gap-1.5 mx-auto cursor-pointer animate-bounce shadow-xs"
           >
             <Volume2 className="w-3.5 h-3.5" /> Tap to Enable Audio Output
           </button>
         )}
       </div>
 
-      {/* Bottom Lavender Translucent Pill Control matching reference design */}
-      <div className="w-full mb-3">
-        <div className="w-full h-16 rounded-3xl lavender-pill-container px-6 flex items-center justify-between border border-purple-400/40">
+      {/* Bottom White Translucent Pill Control */}
+      <div className="w-full mb-2">
+        <div className="w-full h-15 rounded-3xl white-pill-container px-5 flex items-center justify-between border border-slate-200 shadow-lg">
           <button
             onClick={toggleMic}
-            className="flex items-center gap-3 text-purple-100 text-sm font-medium hover:text-white cursor-pointer"
+            className="flex items-center gap-3 text-slate-700 text-sm font-semibold hover:text-blue-700 cursor-pointer"
           >
             {isMuted ? (
-              <MicOff className="w-5 h-5 text-purple-400" />
+              <MicOff className="w-5 h-5 text-rose-500" />
             ) : (
-              <Mic className="w-5 h-5 text-purple-300 animate-pulse" />
+              <Mic className="w-5 h-5 text-blue-600 animate-pulse" />
             )}
             <span>{isMuted ? 'Microphone Muted' : 'Listening...'}</span>
           </button>
@@ -642,7 +678,7 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
                     repeat: Infinity,
                     delay: idx * 0.1,
                   }}
-                  className="w-1 bg-purple-300 rounded-full"
+                  className="w-1 bg-blue-600 rounded-full"
                 />
               ))}
             </div>
@@ -650,7 +686,7 @@ const ConnectedCallerUI: React.FC<ConnectedCallerUIProps> = ({
             {/* End Call button */}
             <button
               onClick={onEndCall}
-              className="w-10 h-10 rounded-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white flex items-center justify-center shadow-lg shadow-rose-950/80 transition-transform active:scale-95 cursor-pointer"
+              className="w-9 h-9 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 cursor-pointer"
             >
               <PhoneOff className="w-4 h-4 fill-current" />
             </button>

@@ -1,120 +1,52 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ServiceCategory } from '../types';
-import { ServiceCard } from './ServiceCard';
 import {
-  PhoneCall,
-  Bot,
   ShieldCheck,
-  Zap,
+  Award,
   Sparkles,
-  Clock,
+  PhoneCall,
+  ExternalLink,
+  BookOpen,
   CheckCircle2,
-  Loader2,
-  Headphones,
+  FileText,
+  Building2,
 } from 'lucide-react';
+import { BIS_DEPARTMENTS, BIS_PORTALS } from '../services/bisSaarthi';
 
 interface LandingPageProps {
-  onStartCall: (servicePreset?: string) => void;
-  isLoading: boolean;
-  errorMessage?: string | null;
+  onStartCall: (preset?: string) => void;
+  isLoading?: boolean;
 }
-
-const SERVICES: ServiceCategory[] = [
-  {
-    id: 'plumber',
-    name: 'Plumber',
-    iconName: 'Wrench',
-    description: 'Fix leaks, pipe fits, tap replacements, and bathroom drainage.',
-    color: '#2563EB',
-    badge: '24/7 Fast',
-    popularServices: ['Pipe Leakage', 'Tap Fitting', 'Drainage'],
-  },
-  {
-    id: 'electrician',
-    name: 'Electrician',
-    iconName: 'Zap',
-    description: 'Wiring repair, MCB replacement, fan/light installation.',
-    color: '#F59E0B',
-    badge: 'Certified',
-    popularServices: ['Short Circuit', 'MCB Switch', 'Fan Fitting'],
-  },
-  {
-    id: 'carpenter',
-    name: 'Carpenter',
-    iconName: 'Hammer',
-    description: 'Furniture assembly, door lock repair, cabinet crafting.',
-    color: '#F97316',
-    popularServices: ['Door Lock', 'Furniture Repair', 'Modular Kitchen'],
-  },
-  {
-    id: 'labour',
-    name: 'Labour',
-    iconName: 'HardHat',
-    description: 'Manual assistance for moving, loading, heavy lifting & masonry.',
-    color: '#10B981',
-    popularServices: ['House Shifting', 'Material Handling', 'Helper'],
-  },
-  {
-    id: 'painter',
-    name: 'Painter',
-    iconName: 'Paintbrush',
-    description: 'Full house interior/exterior wall painting and waterproofing.',
-    color: '#A855F7',
-    badge: 'Popular',
-    popularServices: ['Full Home Paint', 'Waterproofing', 'Wall Touchup'],
-  },
-  {
-    id: 'cleaning',
-    name: 'Cleaning',
-    iconName: 'Sparkles',
-    description: 'Deep home cleaning, sofa/carpet shampooing, kitchen sanitizing.',
-    color: '#14B8A6',
-    popularServices: ['Deep Cleaning', 'Sofa Washing', 'Bathroom Sanitization'],
-  },
-  {
-    id: 'ac-repair',
-    name: 'AC Repair',
-    iconName: 'Snowflake',
-    description: 'Air conditioner servicing, gas refill, PCB repair & installation.',
-    color: '#0EA5E9',
-    badge: 'Summer Special',
-    popularServices: ['AC Servicing', 'Gas Leakage', 'AC Installation'],
-  },
-];
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onStartCall,
-  isLoading,
-  errorMessage,
+  isLoading = false,
 }) => {
   return (
-    <div className="min-h-screen bg-[#080500] text-slate-100 flex flex-col justify-between selection:bg-amber-500 selection:text-black relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-blue-600 selection:text-white relative overflow-hidden">
       {/* Background Decorative Glow Gradients */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-amber-500/20 via-yellow-500/10 to-transparent blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/3 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-10 -left-40 w-96 h-96 bg-yellow-600/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-gradient-to-b from-blue-100/60 via-sky-50/40 to-transparent blur-[100px] pointer-events-none" />
 
       {/* Top Header Navbar */}
       <header className="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between z-20">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-200 flex items-center justify-center shadow-lg shadow-amber-950/80">
-            <Bot className="w-6 h-6 text-black" />
+          <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-200">
+            <ShieldCheck className="w-6 h-6 text-white" />
           </div>
           <div>
-            <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-100 via-amber-300 to-yellow-400">
-              Doobee
+            <span className="text-2xl font-black tracking-tight text-slate-900">
+              BIS Saarthi
             </span>
-            <span className="text-[10px] font-bold tracking-widest text-amber-400 uppercase block -mt-1">
-              AI VOICE ASSISTANT
+            <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase block -mt-1">
+              BUILT BY TEAM AKRIX
             </span>
           </div>
         </div>
 
         <div className="hidden sm:flex items-center gap-3">
-          <div className="px-3.5 py-1.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-xs text-amber-200 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            AI Voice Live Support
+          <div className="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs text-slate-700 flex items-center gap-2 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            National Standards AI Voice Active
           </div>
         </div>
       </header>
@@ -125,10 +57,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 text-[11px] sm:text-xs font-semibold mb-4 sm:mb-6 backdrop-blur-md shadow-md text-center"
+          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-white border border-blue-200 text-blue-800 text-[11px] sm:text-xs font-semibold mb-4 sm:mb-6 shadow-xs text-center"
         >
-          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 animate-pulse shrink-0" />
-          <span>Next-Gen Voice-Activated Home Services</span>
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 shrink-0" />
+          <span>Bureau of Indian Standards Conversational AI</span>
         </motion.div>
 
         {/* Title */}
@@ -136,9 +68,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-3xl sm:text-6xl md:text-7xl font-extrabold text-center tracking-tight leading-[1.1] max-w-4xl bg-clip-text text-transparent bg-gradient-to-r from-amber-100 via-amber-300 to-yellow-400"
+          className="text-3xl sm:text-6xl md:text-7xl font-extrabold text-center tracking-tight leading-[1.1] max-w-4xl text-slate-900"
         >
-          Doobee
+          BIS Saarthi
         </motion.h1>
 
         {/* Subtitle */}
@@ -146,144 +78,97 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-base sm:text-2xl text-amber-200/90 font-medium text-center mt-2 sm:mt-3 max-w-2xl leading-snug"
+          className="text-base sm:text-2xl text-slate-600 font-medium text-center mt-2 sm:mt-3 max-w-2xl leading-snug"
         >
-          Book Trusted Home Service Professionals with AI
+          Your AI guide for Indian Standards (IS), ISI mark certification, gold hallmarking with 6-digit HUID, and mandatory Quality Control Orders.
         </motion.p>
 
-        <motion.p
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="text-xs sm:text-sm text-amber-200/70 text-center mt-2 max-w-lg"
-        >
-          Speak naturally in English, Hindi or Hinglish. Doobee AI instantly understands your problem and assigns verified service experts.
-        </motion.p>
-
-        {/* Large Primary Action Call Button */}
+        {/* CTA Voice Call Button */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-6 sm:mt-8 mb-8 sm:mb-12 flex flex-col items-center w-full max-w-md"
+          className="mt-6 sm:mt-8 flex flex-col items-center"
         >
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
+          <button
             onClick={() => onStartCall()}
             disabled={isLoading}
-            className="w-full sm:w-auto relative group px-6 sm:px-10 py-4 sm:py-5 rounded-3xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black font-extrabold text-lg sm:text-2xl shadow-2xl shadow-amber-500/40 hover:shadow-amber-400/60 border border-amber-300/40 transition-all duration-300 flex items-center justify-center gap-3 sm:gap-4 cursor-pointer disabled:opacity-75"
+            className="group relative px-8 sm:px-10 py-4 sm:py-5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-base sm:text-lg shadow-xl shadow-blue-200 hover:shadow-2xl transition-all duration-300 flex items-center gap-3 cursor-pointer active:scale-95"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-black" />
-                <span>Creating AI Session...</span>
-              </>
-            ) : (
-              <>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-black/20 backdrop-blur-md flex items-center justify-center shadow-inner group-hover:rotate-12 transition-transform shrink-0">
-                  <PhoneCall className="w-6 h-6 sm:w-7 sm:h-7 text-black fill-current" />
-                </div>
-                <span>📞 Call Doobee AI</span>
-              </>
-            )}
-
-            {/* Glowing ring animation */}
-            <span className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-amber-400 to-yellow-400 opacity-30 group-hover:opacity-60 blur-lg transition-all duration-300 pointer-events-none -z-10" />
-          </motion.button>
-
-          {/* Error Message Toast Banner if any */}
-          {errorMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-4 px-4 py-2 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs font-semibold flex items-center gap-2"
-            >
-              <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-              {errorMessage}
-            </motion.div>
-          )}
-
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-4 text-[11px] sm:text-xs text-amber-200/70">
-            <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Instant Connection
-            </span>
-            <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Multilingual Support
-            </span>
-            <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> No Registration
-            </span>
-          </div>
+            <PhoneCall className="w-5 h-5 text-white animate-bounce" />
+            <span>Consult BIS Saarthi via Voice</span>
+          </button>
+          <span className="text-xs text-slate-400 font-medium mt-2">
+            Speak naturally in English, Hindi or Hinglish
+          </span>
         </motion.div>
 
-        {/* Services Grid Section Header */}
-        <div className="w-full flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-amber-100 flex items-center gap-2">
-              <Headphones className="w-5 h-5 text-amber-400" />
-              Select a Service to Speak With AI
-            </h2>
-            <p className="text-xs text-amber-200/60">
-              Click any card to start a voice call targeted for that specific service.
-            </p>
+        {/* 17 Technical Departments Showcase */}
+        <div className="w-full mt-14 sm:mt-16">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                BIS Technical Division Councils
+              </h2>
+              <p className="text-xs text-slate-500">
+                17 specialized technical departments regulating quality standards across India
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {BIS_DEPARTMENTS.slice(0, 6).map((dept) => (
+              <div
+                key={dept.code}
+                onClick={() => onStartCall(dept.code)}
+                className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+                    {dept.code}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Department</span>
+                </div>
+                <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                  {dept.name}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Example: <span className="font-semibold text-slate-700">{dept.example}</span>
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Services Cards Grid */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {SERVICES.map((service) => (
-            <ServiceCard
-              key={service.id}
-              service={service}
-              onSelectService={(name) => onStartCall(name)}
-            />
-          ))}
-        </div>
-
-        {/* Features Highlights */}
-        <div className="w-full mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 border-t border-amber-500/20">
-          <div className="p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-amber-900/60 border border-amber-500/40 text-amber-300">
-              <Zap className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-bold text-amber-200 text-sm">Real-time Voice AI</h4>
-              <p className="text-xs text-amber-200/60 mt-1">
-                Zero lag natural conversation with instant speech synthesis.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-amber-900/60 border border-amber-500/40 text-amber-300">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-bold text-amber-200 text-sm">Verified Professionals</h4>
-              <p className="text-xs text-amber-200/60 mt-1">
-                Background-checked plumbers, electricians, painters & experts.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-amber-900/60 border border-amber-500/40 text-amber-300">
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-bold text-amber-200 text-sm">Instant Dispatch</h4>
-              <p className="text-xs text-amber-200/60 mt-1">
-                Workers matched and assigned to your location within minutes.
-              </p>
-            </div>
+        {/* Official BIS Portals Links */}
+        <div className="w-full mt-10 p-5 rounded-3xl bg-white border border-slate-200 shadow-xs">
+          <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-blue-600" />
+            <span>Authoritative BIS Digital Portals</span>
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {BIS_PORTALS.map((portal) => (
+              <a
+                key={portal.name}
+                href={portal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 rounded-xl bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:border-blue-200 text-xs text-slate-800 font-semibold flex items-center justify-between transition-colors"
+              >
+                <span className="truncate">{portal.name}</span>
+                <ExternalLink className="w-3 h-3 text-slate-400 shrink-0 ml-1" />
+              </a>
+            ))}
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t border-amber-500/20 py-6 text-center text-xs text-amber-200/50 z-10">
-        <p>© 2026 Doobee AI Voice Assistant — Powered by LiveKit & Hugging Face</p>
+      <footer className="w-full border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white">
+        <p>© 2026 BIS Saarthi — Built by Team AKRIX</p>
+        <p className="text-[10px] text-slate-400 mt-0.5">
+          Dedicated to Indian Standards (IS), ISI Certification & National Quality
+        </p>
       </footer>
     </div>
   );

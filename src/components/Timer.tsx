@@ -9,8 +9,8 @@ interface TimerProps {
 
 export const Timer: React.FC<TimerProps> = ({ seconds, isConnected }) => {
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-slate-800 text-slate-300 font-mono text-xs shadow-inner">
-      <Clock className={`w-3.5 h-3.5 ${isConnected ? 'text-blue-400 animate-pulse' : 'text-slate-500'}`} />
+    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 font-mono text-xs shadow-xs">
+      <Clock className={`w-3.5 h-3.5 ${isConnected ? 'text-blue-600 animate-pulse' : 'text-slate-400'}`} />
       <span>{formatDuration(seconds)}</span>
     </div>
   );
