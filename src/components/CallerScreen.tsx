@@ -158,8 +158,8 @@ export const CallerScreen: React.FC = () => {
     setSummaryDetails(null);
 
     const initialGreeting = presetPrompt
-      ? `Hello! Welcome to BIS Saarthi. I see you are inquiring about ${presetPrompt}. How can I assist you with the applicable Indian Standards or certification?`
-      : 'Hello! I am BIS Saarthi, your AI assistant for Indian Standards, BIS certification, hallmarking, and product quality. How can I help you today?';
+      ? `Hello! Welcome to BIS Saarthi. How can I assist you with ${presetPrompt}?`
+      : 'Hello! I am BIS Saarthi. How can I help you with Indian Standards today?';
 
     setTranscriptMessages([
       {
